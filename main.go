@@ -1,4 +1,4 @@
-// Copyright © 2019 NAME HERE <EMAIL ADDRESS>
+// Copyright © 2019 Máté Birkás <gadfly16@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/Gradient-Images/teflon/cmd"
+import "github.com/Gradient-Images/Teflon/cmd"
 
 func main() {
 	cmd.Execute()
