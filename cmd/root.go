@@ -28,10 +28,10 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "teflon",
-	Short: "Film and TV post-production automation software",
+	Short: "Film and TV post-production automation framework",
 	Long: `Teflon is an automation framework that makes it possible
 to automate several aspects of the post-production process, like file
-transformations, file sharing, job distribution among others.`,
+transformations, file sharing and job distribution.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
