@@ -1,0 +1,6 @@
+syntax = "proto3";
+package metadata;
+
+message UserSection {
+  map<string, string> user_data = 1;
+}

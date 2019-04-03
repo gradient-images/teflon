@@ -20,6 +20,8 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/gradient-images/teflon/internal/metadata"
+
 	"github.com/spf13/cobra"
 )
 
@@ -54,8 +56,8 @@ func init() {
 }
 
 func meta(cmd *cobra.Command, args []string) {
-	fmt.Println("meta called")
-	for i, baseName := range args {
+	log.Print("meta called")
+	for _, baseName := range args {
 		baseInfo, err := os.Stat(baseName)
 		if err != nil {
 			log.Fatal(err)
@@ -67,6 +69,16 @@ func meta(cmd *cobra.Command, args []string) {
 			d, n := filepath.Split(baseName)
 			metaName = filepath.Join(d, teflonDirName, n + teflonMetaExt)
 		}
-		fmt.Println(i, baseName, metaName)
+
+		if _, err := os.Stat(metaName); os.IsNotExist(err) {
+			log.Print("Meta file doesn't exists.")
+		} else {
+			log.Print("Meta file exists.")
+		}
+		fmt.Println(baseName, metaName)
+		us := metadata.UserSection{}
+		us.UserData = make(map[string]string)
+		us.UserData["valami"] = "azta"
+		fmt.Println(us)
 	}
 }
