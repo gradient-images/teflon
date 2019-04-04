@@ -14,8 +14,8 @@
 
 package main
 
-import "github.com/gradient-images/teflon/cmd"
+import "github.com/gradient-images/teflon/commands"
 
 func main() {
-	cmd.Execute()
+	commands.Execute()
 }

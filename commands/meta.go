@@ -12,23 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package commands
 
 import (
 	"fmt"
-	"os"
 	"log"
-	"path/filepath"
 
 	"github.com/gradient-images/teflon/internal/metadata"
 
 	"github.com/spf13/cobra"
-)
-
-const (
-	teflonDirName = ".teflon"
-	teflonDirMetaName = "_"
-	teflonMetaExt = "._"
 )
 
 // moveCmd represents the move command
@@ -49,10 +41,10 @@ file doesn't exist 'meta set' will create a new one.`,
   Run: metaSet,
 }
 
-var DataEntry string
+var DataList []string
 
 func init() {
-	metaSetCmd.Flags().StringVarP(&DataEntry, "data", "d", "", "Data entry in the form of key:value")
+	metaSetCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{}, "Data entry in the form of key:value")
 	metaCmd.AddCommand(metaSetCmd)
 	rootCmd.AddCommand(metaCmd)
 
@@ -70,26 +62,7 @@ func init() {
 func meta(cmd *cobra.Command, args []string) {
 	log.Print("'meta' command called")
 	for _, baseName := range args {
-		baseInfo, err := os.Stat(baseName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var metaName string
-		if baseInfo.IsDir() {
-			metaName = filepath.Join(baseName, teflonDirName, teflonDirMetaName)
-		} else {
-			d, n := filepath.Split(baseName)
-			metaName = filepath.Join(d, teflonDirName, n + teflonMetaExt)
-		}
-
-		if _, err := os.Stat(metaName); os.IsNotExist(err) {
-			log.Print("Meta file doesn't exists.")
-		} else {
-			log.Print("Meta file exists.")
-		}
-		fmt.Println(baseName, metaName)
-		us := metadata.UserSection{}
-		us.UserData = make(map[string]string)
+		us := metadata.Get(baseName)
 		us.UserData["valami"] = "azta"
 		fmt.Println(us)
 	}
@@ -97,5 +70,8 @@ func meta(cmd *cobra.Command, args []string) {
 
 func metaSet(cmd *cobra.Command, args []string) {
 	log.Print("'meta set' command called")
-	fmt.Println(DataEntry)
+	for _, baseName := range args {
+		metadata.Get(baseName)
+	}
+	fmt.Println(DataList)
 }
