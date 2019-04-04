@@ -17,6 +17,7 @@ package commands
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gradient-images/teflon/internal/metadata"
 
@@ -44,7 +45,8 @@ file doesn't exist 'meta set' will create a new one.`,
 var DataList []string
 
 func init() {
-	metaSetCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{}, "Data entry in the form of key:value")
+	metaSetCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{},
+		"Data entry in the form of 'key:value' pairs")
 	metaCmd.AddCommand(metaSetCmd)
 	rootCmd.AddCommand(metaCmd)
 
@@ -62,16 +64,23 @@ func init() {
 func meta(cmd *cobra.Command, args []string) {
 	log.Print("'meta' command called")
 	for _, baseName := range args {
-		us := metadata.Get(baseName)
-		us.UserData["valami"] = "azta"
-		fmt.Println(us)
+		md := metadata.Get(baseName)
+		for k, v := range md.UserSection.UserData {
+			fmt.Println(k, ":", v)
+		}
 	}
 }
 
 func metaSet(cmd *cobra.Command, args []string) {
 	log.Print("'meta set' command called")
 	for _, baseName := range args {
-		metadata.Get(baseName)
+		md := metadata.Get(baseName)
+		for _, data := range DataList {
+			s := strings.SplitN(data, ":", 2)
+			key, value := s[0], s[1]
+			md.UserSection.UserData[key] = value
+		}
+		fmt.Println(DataList, md.UserSection.UserData)
+		md.Sync()
 	}
-	fmt.Println(DataList)
 }
