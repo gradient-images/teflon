@@ -41,7 +41,19 @@ file if it's not already there or not up to date.`,
 	Run: meta,
 }
 
+var metaSetCmd = &cobra.Command{
+	Use: "set <-e key:value> <target>",
+	Short: "Sets a user metadata entry on the given target",
+	Long: `Command 'meta set' sets a metadata entry on the the target. If the meta
+file doesn't exist 'meta set' will create a new one.`,
+  Run: metaSet,
+}
+
+var DataEntry string
+
 func init() {
+	metaSetCmd.Flags().StringVarP(&DataEntry, "data", "d", "", "Data entry in the form of key:value")
+	metaCmd.AddCommand(metaSetCmd)
 	rootCmd.AddCommand(metaCmd)
 
 	// Here you will define your flags and configuration settings.
@@ -56,7 +68,7 @@ func init() {
 }
 
 func meta(cmd *cobra.Command, args []string) {
-	log.Print("meta called")
+	log.Print("'meta' command called")
 	for _, baseName := range args {
 		baseInfo, err := os.Stat(baseName)
 		if err != nil {
@@ -81,4 +93,9 @@ func meta(cmd *cobra.Command, args []string) {
 		us.UserData["valami"] = "azta"
 		fmt.Println(us)
 	}
+}
+
+func metaSet(cmd *cobra.Command, args []string) {
+	log.Print("'meta set' command called")
+	fmt.Println(DataEntry)
 }
