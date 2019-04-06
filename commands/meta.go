@@ -1,10 +1,9 @@
-// Copyright © 2019 NAME HERE <EMAIL ADDRESS>
+// Copyright © 2019 Máté Birkás <gadfly16@gmail.com>.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
+// http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,18 +27,18 @@ import (
 var metaCmd = &cobra.Command{
 	Use:   "meta",
 	Short: "Gets or sets Teflon metadata",
-	Long: `Command 'meta' prints the metadata belonging to the files given as
+	Long: `Command 'teflon meta' prints the metadata belonging to the files given as
 arguments. As a side effect the metadata access process creates the meta
 file if it's not already there or not up to date.`,
-	Run: meta,
+	Run: metaRun,
 }
 
 var metaSetCmd = &cobra.Command{
-	Use: "set <-e key:value> <target>",
+	Use: "set <-d key:value..> <target..>",
 	Short: "Sets a user metadata entry on the given target",
-	Long: `Command 'meta set' sets a metadata entry on the the target. If the meta
+	Long: `Command 'teflon meta set' sets a metadata entry on the the target. If the meta
 file doesn't exist 'meta set' will create a new one.`,
-  Run: metaSet,
+  Run: metaSetRun,
 }
 
 var DataList []string
@@ -61,7 +60,7 @@ func init() {
 	// moveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func meta(cmd *cobra.Command, args []string) {
+func metaRun(cmd *cobra.Command, args []string) {
 	log.Print("'meta' command called")
 	for _, baseName := range args {
 		md := metadata.Get(baseName)
@@ -71,7 +70,7 @@ func meta(cmd *cobra.Command, args []string) {
 	}
 }
 
-func metaSet(cmd *cobra.Command, args []string) {
+func metaSetRun(cmd *cobra.Command, args []string) {
 	log.Print("'meta set' command called")
 	for _, baseName := range args {
 		md := metadata.Get(baseName)
