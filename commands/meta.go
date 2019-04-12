@@ -26,16 +26,16 @@ import (
 // moveCmd represents the move command
 var metaCmd = &cobra.Command{
 	Use:   "meta",
-	Short: "Gets or sets Teflon metadata",
-	Long: `Command 'teflon meta' prints the metadata belonging to the files given as
-arguments. As a side effect the metadata access process creates the meta
-file if it's not already there or not up to date.`,
+	Short: "Manipulates Teflon metadata",
+	Long: `Without any subcommand 'teflon meta' prints the metadata belonging to the targets.
+As a side effect the metadata access the command creates the meta
+files if they are not already exist or refreshes them if they are not up-to-date.`,
 	Run: metaRun,
 }
 
 var metaSetCmd = &cobra.Command{
 	Use: "set <-d key:value..> <target..>",
-	Short: "Sets a user metadata entry on the given target",
+	Short: "Sets a user metadata entry on the given target.",
 	Long: `Command 'teflon meta set' sets a metadata entry on the the target. If the meta
 file doesn't exist 'meta set' will create a new one.`,
   Run: metaSetRun,

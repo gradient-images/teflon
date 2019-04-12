@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	teflonDirName = ".teflon"
-	teflonDirMetaName = "_"
-	teflonMetaExt = "._"
+	metaDirName = ".teflon"
+	metaDirMetaName = "_"
+	metaExt = "._"
 )
 
 type Metadata struct {
@@ -42,10 +42,10 @@ func Get(baseName string) *Metadata {
   var metaName string
 
   if baseInfo.IsDir() {
-    metaName = filepath.Join(baseName, teflonDirName, teflonDirMetaName)
+    metaName = filepath.Join(baseName, metaDirName, metaDirMetaName)
   } else {
     d, n := filepath.Split(baseName)
-    metaName = filepath.Join(d, teflonDirName, n + teflonMetaExt)
+    metaName = filepath.Join(d, metaDirName, n + metaExt)
   }
 
   log.Println(baseName, metaName)

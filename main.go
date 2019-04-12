@@ -14,8 +14,21 @@
 
 package main
 
-import "github.com/gradient-images/teflon/commands"
+import (
+	"os"
+	"log"
+	"path/filepath"
+
+	"github.com/gradient-images/teflon/commands"
+	"github.com/gradient-images/teflon/internal/teflon"
+	)
 
 func main() {
+	teflon.TeflonRoot = os.Getenv("TEFLON")
+	if teflon.TeflonRoot == "" {
+		log.Println("FATAL: $TEFLON environment variable not set.")
+		os.Exit(1)
+	}
+	teflon.TeflonDir = filepath.Join(teflon.TeflonRoot, teflon.TeflonDirName)
 	commands.Execute()
 }

@@ -17,14 +17,26 @@ import (
   // "log"
   "os"
   "path/filepath"
+
+  "github.com/gradient-images/teflon/internal/metadata"
+)
+
+var (
+  TeflonRoot string
+  TeflonDir string
 )
 
 const (
-  TeflonDirName = "Teflon"
+  TeflonDirName = ".teflon_root"
   ShowProtoDirName = "show_proto"
   ShowDirName = "show"
   ProtoDirName = "asset/proto"
 )
+
+type TObject interface {
+  Name() string
+  Meta() metadata.UserSection
+}
 
 type TeflonError struct {
   Message  string
@@ -50,20 +62,6 @@ func FindShowRoot(target string) (string, error) {
   parent := filepath.Dir(target)
   if parent == target {
     return "", TeflonError{Message: "Show not found."}
-  }
-
-  return FindShowRoot(parent)
-}
-
-func FindTeflonRoot(target string) (string, error) {
-  dirName := filepath.Join(target, TeflonDirName)
-  if IsDir(dirName) {
-    return target, nil
-  }
-
-  parent := filepath.Dir(target)
-  if parent == target {
-    return "", TeflonError{Message: "Teflon directory not found."}
   }
 
   return FindShowRoot(parent)
