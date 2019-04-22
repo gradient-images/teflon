@@ -18,7 +18,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/gradient-images/teflon/internal/metadata"
+	// "github.com/gradient-images/teflon/internal/metadata"
+	"github.com/gradient-images/teflon/internal/teflon"
 
 	"github.com/spf13/cobra"
 )
@@ -62,9 +63,13 @@ func init() {
 
 func metaRun(cmd *cobra.Command, args []string) {
 	log.Print("'meta' command called")
-	for _, baseName := range args {
-		md := metadata.Get(baseName)
-		for k, v := range md.UserSection.UserData {
+	for _, target := range args {
+		o := teflon.NewObject(target)
+		m, err := o.GetMeta()
+		if err != nil {
+			log.Fatalln("Couldn't get metadata.", err)
+		}
+		for k, v := range m.UserData {
 			fmt.Println(k, ":", v)
 		}
 	}
@@ -72,14 +77,16 @@ func metaRun(cmd *cobra.Command, args []string) {
 
 func metaSetRun(cmd *cobra.Command, args []string) {
 	log.Print("'meta set' command called")
-	for _, baseName := range args {
-		md := metadata.Get(baseName)
+	for _, target := range args {
+		o := teflon.NewObject(target)
+		err := o.InitMeta()
+		if err != nil {
+			log.Fatalln("Couldn't init metadata:", err)
+		}
 		for _, data := range DataList {
 			s := strings.SplitN(data, ":", 2)
-			key, value := s[0], s[1]
-			md.UserSection.UserData[key] = value
+			o.SetMeta(s[0], s[1])
 		}
-		fmt.Println(DataList, md.UserSection.UserData)
-		md.Sync()
+		o.SyncMeta()
 	}
 }

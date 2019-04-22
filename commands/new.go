@@ -37,7 +37,7 @@ creates a new object based on the one it finds matching the requested type.`,
 var proto string
 
 func init() {
-	newCmd.Flags().StringVarP(&proto, "proto", "p", "", "Proto to create.")
+	newCmd.Flags().StringVarP(&proto, "proto", "p", "", "Prototype to create.")
 	rootCmd.AddCommand(newCmd)
 }
 
