@@ -1,5 +1,5 @@
 syntax = "proto3";
-package metadata;
+package teflon;
 
 message UserSection {
   map<string, string> user_data = 1;

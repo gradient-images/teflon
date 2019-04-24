@@ -35,11 +35,12 @@ files if they are not already exist or refreshes them if they are not up-to-date
 }
 
 var metaSetCmd = &cobra.Command{
-	Use: "set <-d key:value..> <target..>",
+	Use:   "set <-d key:value..> <target..>",
 	Short: "Sets a user metadata entry on the given target.",
 	Long: `Command 'teflon meta set' sets a metadata entry on the the target. If the meta
-file doesn't exist 'meta set' will create a new one.`,
-  Run: metaSetRun,
+file doesn't exist 'meta set' will create a new one. If only a key is given
+to the -d flag, the entry for the key will be deleted.`,
+	Run: metaSetRun,
 }
 
 var DataList []string
@@ -62,7 +63,11 @@ func init() {
 }
 
 func metaRun(cmd *cobra.Command, args []string) {
-	log.Print("'meta' command called")
+	log.Println("'meta' command called")
+	if len(args) == 0 {
+		args = append(args, ".")
+		log.Println("No targets given, running for '.' .")
+	}
 	for _, target := range args {
 		o := teflon.NewObject(target)
 		m, err := o.GetMeta()
@@ -77,15 +82,28 @@ func metaRun(cmd *cobra.Command, args []string) {
 
 func metaSetRun(cmd *cobra.Command, args []string) {
 	log.Print("'meta set' command called")
+	if len(args) == 0 {
+		args = append(args, ".")
+		log.Println("No targets given, running for '.' .")
+	}
 	for _, target := range args {
 		o := teflon.NewObject(target)
 		err := o.InitMeta()
 		if err != nil {
-			log.Fatalln("Couldn't init metadata:", err)
+			log.Fatalln("FATLAL: Couldn't init metadata:", err)
 		}
 		for _, data := range DataList {
 			s := strings.SplitN(data, ":", 2)
-			o.SetMeta(s[0], s[1])
+			if len(s) < 2 {
+				log.Fatalln("FALTAL: Malformed metadata:", data)
+			}
+			if s[1] == "" {
+				log.Println("Deleting metadata entry:", s[0])
+				o.DelMeta(s[0])
+			} else {
+				log.Println("Setting metadata entry:", s[0], "to", s[1])
+				o.SetMeta(s[0], s[1])
+			}
 		}
 		o.SyncMeta()
 	}
