@@ -14,13 +14,14 @@
 package teflon
 
 import (
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/timestamp"
 )
 
 var (
@@ -37,12 +38,24 @@ const (
 	metaExtension    = "._"
 )
 
-type TeflonError struct {
-	Message string
+type FileInfo struct {
+	os.FileInfo
 }
 
-func (err TeflonError) Error() string {
-	return err.Message
+func (f FileInfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"Name":    f.Name(),
+		"Size":    f.Size(),
+		"Mode":    f.Mode(),
+		"ModTime": f.ModTime(),
+		"IsDir":   f.IsDir(),
+	})
+}
+
+type TObject struct {
+	Path     string
+	FileInfo FileInfo
+	PersistentMeta
 }
 
 func NewObject(path string) (*TObject, error) {
@@ -50,31 +63,23 @@ func NewObject(path string) (*TObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &TObject{File: &FileInfo{Name: path}}, nil
+	return &TObject{Path: path}, nil
 }
 
 func (o *TObject) MetaFile() string {
-	if o.File.IsDir {
-		return filepath.Join(o.File.Name, metaDirName, metaDirMetaName)
+	if o.FileInfo.IsDir() {
+		return filepath.Join(o.Path, metaDirName, metaDirMetaName)
 	}
-	d, n := filepath.Split(o.File.Name)
+	d, n := filepath.Split(o.Path)
 	return filepath.Join(d, metaDirName, n+metaExtension)
 }
 
 func (o *TObject) InitMeta() error {
-	stat, err := os.Stat(o.File.Name)
+	stat, err := os.Stat(o.Path)
 	if err != nil {
 		return err
 	}
-
-	// Init FileInfo. Later checking if something is changed
-	// will come here.
-	o.File.Size = stat.Size()
-	o.File.ModTime = &timestamp.Timestamp{
-		Seconds: stat.ModTime().Unix(),
-		Nanos:   int32(stat.ModTime().UnixNano()),
-	}
-	o.File.IsDir = stat.IsDir()
+	o.FileInfo = FileInfo{stat}
 
 	if _, err := os.Stat(o.MetaFile()); os.IsNotExist(err) {
 		log.Println("Meta file doesn't exists.")
@@ -158,7 +163,7 @@ func FindShowRoot(target string) (string, error) {
 
 	parent := filepath.Dir(target)
 	if parent == target {
-		return "", TeflonError{Message: "Show not found."}
+		return "", errors.New("Show not found.")
 	}
 
 	return FindShowRoot(parent)

@@ -2,18 +2,7 @@ syntax = "proto3";
 
 package teflon;
 
-import "google/protobuf/timestamp.proto";
-
-message TObject {
-  FileInfo File = 1;
-  string Proto = 2;
-  map<string, string> UserData = 3;
-}
-
-message FileInfo {
-  string Name = 1;
-  int64 Size = 2;
-  // FileMode Mode = 3;
-  google.protobuf.Timestamp ModTime = 4;
-  bool IsDir = 5;
+message PersistentMeta {
+  string Proto = 1;
+  map<string, string> UserData = 2;
 }
