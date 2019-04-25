@@ -8,4 +8,5 @@ require (
 	github.com/otiai10/copy v1.0.1
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.2
+	gopkg.in/yaml.v2 v2.2.2
 )

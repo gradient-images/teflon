@@ -33,8 +33,6 @@ the key will be deleted.`,
 	Run: setRun,
 }
 
-var DataList []string
-
 func init() {
 	setCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{},
 		"Data entry in the form of 'key:value' pairs")
@@ -42,14 +40,17 @@ func init() {
 }
 
 func setRun(cmd *cobra.Command, args []string) {
-	log.Print("'meta set' command called")
+	log.Print("'set' command called")
 	if len(args) == 0 {
 		args = append(args, ".")
 		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o := teflon.NewObject(target)
-		err := o.InitMeta()
+		o, err := teflon.NewObject(target)
+		if err != nil {
+			log.Fatalln("Couldn't create object:", err)
+		}
+		err = o.InitMeta()
 		if err != nil {
 			log.Fatalln("FATLAL: Couldn't init metadata:", err)
 		}

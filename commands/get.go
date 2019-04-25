@@ -14,10 +14,12 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/gradient-images/teflon/internal/teflon"
+	// "gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
 )
@@ -37,19 +39,27 @@ func init() {
 }
 
 func getRun(cmd *cobra.Command, args []string) {
-	log.Println("'meta' command called")
+	log.Println("'get' command called")
 	if len(args) == 0 {
 		args = append(args, ".")
 		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o := teflon.NewObject(target)
-		m, err := o.GetMeta()
+		o, err := teflon.NewObject(target)
+		if err != nil {
+			log.Fatalln("Couldn't create object:", err)
+		}
+		err = o.InitMeta()
 		if err != nil {
 			log.Fatalln("Couldn't get metadata.", err)
 		}
-		for k, v := range m.UserData {
-			fmt.Println(k+":", v)
+		d, err := json.MarshalIndent(&o, "", "  ")
+		if err != nil {
+			log.Fatalf("error: %v", err)
 		}
+		fmt.Println(string(d))
+		// for k, v := range m.UserData {
+		// 	fmt.Println(k+":", v)
+		// }
 	}
 }

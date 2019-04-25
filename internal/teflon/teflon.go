@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/timestamp"
 )
 
 var (
@@ -44,40 +45,47 @@ func (err TeflonError) Error() string {
 	return err.Message
 }
 
-type TObject struct {
-	Path, metaPath string
-	meta           *UserSection
+func NewObject(path string) (*TObject, error) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	return &TObject{File: &FileInfo{Name: path}}, nil
 }
 
-func NewObject(path string) *TObject {
-	return &TObject{Path: path}
+func (o *TObject) MetaFile() string {
+	if o.File.IsDir {
+		return filepath.Join(o.File.Name, metaDirName, metaDirMetaName)
+	}
+	d, n := filepath.Split(o.File.Name)
+	return filepath.Join(d, metaDirName, n+metaExtension)
 }
 
 func (o *TObject) InitMeta() error {
-	stat, err := os.Stat(o.Path)
+	stat, err := os.Stat(o.File.Name)
 	if err != nil {
 		return err
 	}
 
-	if stat.IsDir() {
-		o.metaPath = filepath.Join(o.Path, metaDirName, metaDirMetaName)
-	} else {
-		d, n := filepath.Split(o.Path)
-		o.metaPath = filepath.Join(d, metaDirName, n+metaExtension)
+	// Init FileInfo. Later checking if something is changed
+	// will come here.
+	o.File.Size = stat.Size()
+	o.File.ModTime = &timestamp.Timestamp{
+		Seconds: stat.ModTime().Unix(),
+		Nanos:   int32(stat.ModTime().UnixNano()),
 	}
+	o.File.IsDir = stat.IsDir()
 
-	o.meta = &UserSection{}
-
-	if _, err := os.Stat(o.metaPath); os.IsNotExist(err) {
+	if _, err := os.Stat(o.MetaFile()); os.IsNotExist(err) {
 		log.Println("Meta file doesn't exists.")
-		o.meta.UserData = make(map[string]string)
+		o.UserData = make(map[string]string)
 	} else {
 		log.Print("Meta file exists.")
-		in, err := ioutil.ReadFile(o.metaPath)
+		in, err := ioutil.ReadFile(o.MetaFile())
 		if err != nil {
 			return err
 		}
-		err = proto.Unmarshal(in, o.meta)
+		err = proto.Unmarshal(in, o)
 		if err != nil {
 			return err
 		}
@@ -85,43 +93,43 @@ func (o *TObject) InitMeta() error {
 	return nil
 }
 
-func (o TObject) GetMeta() (*UserSection, error) {
-	if o.meta != nil {
-		return o.meta, nil
-	}
-
-	err := o.InitMeta()
-	if err != nil {
-		return nil, err
-	}
-
-	return o.meta, nil
-}
+// func (o TObject) GetAllMeta() (*UserSection, error) {
+// 	if o.UserData != nil {
+// 		return o.UserData, nil
+// 	}
+//
+// 	err := o.InitMeta()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	return o.UserData, nil
+// }
 
 func (o *TObject) SetMeta(key, value string) {
-	o.meta.UserData[key] = value
+	o.UserData[key] = value
 }
 
 func (o *TObject) DelMeta(key string) {
-	delete(o.meta.UserData, key)
+	delete(o.UserData, key)
 }
 
-func (o TObject) SyncMeta() error {
-	out, err := proto.Marshal(o.meta)
+func (o *TObject) SyncMeta() error {
+	out, err := proto.Marshal(o)
 	if err != nil {
 		return err
 	}
 
 	o.createTeflonDir()
 
-	if err := ioutil.WriteFile(o.metaPath, out, 0644); err != nil {
+	if err := ioutil.WriteFile(o.MetaFile(), out, 0644); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (o TObject) createTeflonDir() error {
-	err := os.Mkdir(filepath.Dir(o.metaPath), 0755)
+	err := os.Mkdir(filepath.Dir(o.MetaFile()), 0755)
 	if err != nil {
 		if os.IsExist(err) {
 			return nil
