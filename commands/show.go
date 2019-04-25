@@ -17,12 +17,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
 	// "strings"
 
 	"github.com/gradient-images/teflon/internal/teflon"
 
-	"github.com/spf13/cobra"
 	"github.com/otiai10/copy"
+	"github.com/spf13/cobra"
 )
 
 // moveCmd represents the move command
@@ -35,11 +36,11 @@ belongs to. If target is omitted, it defaults to the current directory.`,
 }
 
 var showNewCmd = &cobra.Command{
-	Use: "new <target> [<targets>...]",
+	Use:   "new <target> [<targets>...]",
 	Short: "Creates a new show from a prototype.",
 	Long: `Command 'teflon show new' creates a new show at the tartget location based on a
 prototype found in the $TEFLON/show_proto directory.`,
-  Run: showNewRun,
+	Run: showNewRun,
 }
 
 var showProto string
@@ -73,5 +74,14 @@ func showNewRun(cmd *cobra.Command, args []string) {
 			log.Fatalln(err)
 		}
 		log.Printf("DONE: Created new show '%v' based on '%v'.", absTarget, showProto)
+
+		o, _ := teflon.NewObject(absTarget)
+		if o.InitMeta() != nil {
+			log.Fatalln("Couldn't init meta of newly created show:", err)
+		}
+		o.Proto = "SHOW:" + showProto
+		if o.SyncMeta() != nil {
+			log.Fatalln("Couldn't write meta of newly created show:", err)
+		}
 	}
 }
