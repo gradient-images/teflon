@@ -75,11 +75,13 @@ func showNewRun(cmd *cobra.Command, args []string) {
 		}
 		log.Printf("DONE: Created new show '%v' based on '%v'.", absTarget, showProto)
 
-		o, _ := teflon.NewObject(absTarget)
-		if o.InitMeta() != nil {
-			log.Fatalln("Couldn't init meta of newly created show:", err)
+		o, err := teflon.InitObject(target)
+		if err != nil {
+			log.Fatalln("Couldn't create object:", err)
 		}
+
 		o.Proto = "SHOW:" + showProto
+
 		if o.SyncMeta() != nil {
 			log.Fatalln("Couldn't write meta of newly created show:", err)
 		}

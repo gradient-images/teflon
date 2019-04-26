@@ -66,12 +66,16 @@ func NewObject(path string) (*TObject, error) {
 	return &TObject{Path: path}, nil
 }
 
-func (o *TObject) MetaFile() string {
-	if o.FileInfo.IsDir() {
-		return filepath.Join(o.Path, metaDirName, metaDirMetaName)
+func InitObject(path string) (*TObject, error) {
+	o, err := NewObject(path)
+	if err != nil {
+		return nil, err
 	}
-	d, n := filepath.Split(o.Path)
-	return filepath.Join(d, metaDirName, n+metaExtension)
+	err = o.InitMeta()
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
 }
 
 func (o *TObject) InitMeta() error {
@@ -96,6 +100,14 @@ func (o *TObject) InitMeta() error {
 		}
 	}
 	return nil
+}
+
+func (o *TObject) MetaFile() string {
+	if o.FileInfo.IsDir() {
+		return filepath.Join(o.Path, metaDirName, metaDirMetaName)
+	}
+	d, n := filepath.Split(o.Path)
+	return filepath.Join(d, metaDirName, n+metaExtension)
 }
 
 // func (o TObject) GetAllMeta() (*UserSection, error) {

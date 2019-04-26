@@ -46,13 +46,9 @@ func setRun(cmd *cobra.Command, args []string) {
 		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.NewObject(target)
+		o, err := teflon.InitObject(target)
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
-		}
-		err = o.InitMeta()
-		if err != nil {
-			log.Fatalln("FATLAL: Couldn't init metadata:", err)
 		}
 		for _, data := range DataList {
 			s := strings.SplitN(data, ":", 2)
