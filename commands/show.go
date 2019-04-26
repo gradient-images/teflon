@@ -80,7 +80,7 @@ func showNewRun(cmd *cobra.Command, args []string) {
 			log.Fatalln("Couldn't create object:", err)
 		}
 
-		o.Proto = "SHOW:" + showProto
+		o.Proto = teflon.ShowPrefix + showProto
 
 		if o.SyncMeta() != nil {
 			log.Fatalln("Couldn't write meta of newly created show:", err)

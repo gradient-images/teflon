@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -32,7 +33,8 @@ var (
 const (
 	TeflonDirName    = ".teflon_root"
 	ShowProtoDirName = "show_proto"
-	ProtoDirName     = "proto"
+	ShowPrefix       = "SHOW:"
+	protoDirName     = "proto"
 	metaDirName      = ".teflon"
 	metaDirMetaName  = "_"
 	metaExtension    = "._"
@@ -86,10 +88,8 @@ func (o *TObject) InitMeta() error {
 	o.FileInfo = FileInfo{stat}
 
 	if _, err := os.Stat(o.MetaFile()); os.IsNotExist(err) {
-		log.Println("Meta file doesn't exists.")
 		o.UserData = make(map[string]string)
 	} else {
-		log.Print("Meta file exists.")
 		in, err := ioutil.ReadFile(o.MetaFile())
 		if err != nil {
 			return err
@@ -110,19 +110,6 @@ func (o *TObject) MetaFile() string {
 	return filepath.Join(d, metaDirName, n+metaExtension)
 }
 
-// func (o TObject) GetAllMeta() (*UserSection, error) {
-// 	if o.UserData != nil {
-// 		return o.UserData, nil
-// 	}
-//
-// 	err := o.InitMeta()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return o.UserData, nil
-// }
-
 func (o *TObject) SetMeta(key, value string) {
 	o.UserData[key] = value
 }
@@ -139,7 +126,8 @@ func (o *TObject) SyncMeta() error {
 
 	o.createTeflonDir()
 
-	if err := ioutil.WriteFile(o.MetaFile(), out, 0644); err != nil {
+	err = ioutil.WriteFile(o.MetaFile(), out, 0644)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -165,6 +153,40 @@ func IsDir(target string) bool {
 		return true
 	}
 	return false
+}
+
+func IsShow(target string) bool {
+	o, err := InitObject(target)
+	if err != nil {
+		return false
+	}
+	if strings.HasPrefix(o.Proto, ShowPrefix) {
+		return true
+	}
+	return false
+}
+
+func FindProtoDirs(target string) []string {
+	pdl := []string{}
+	target = filepath.Clean(target)
+	for {
+		log.Println("Checking for proto:", target)
+		d := filepath.Join(target, metaDirName, protoDirName)
+		if IsDir(d) {
+			pdl = append(pdl, d)
+		}
+		if IsShow(target) {
+			log.Println("Reached Show root:", target)
+			break
+		}
+		p := filepath.Dir(target)
+		log.Println("Moving on to parent:", p)
+		if p == target {
+			break
+		}
+		target = p
+	}
+	return pdl
 }
 
 func FindShowRoot(target string) (string, error) {

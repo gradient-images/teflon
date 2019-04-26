@@ -20,12 +20,12 @@ import (
 	"strings"
 
 	"github.com/gradient-images/teflon/internal/teflon"
+	"github.com/otiai10/copy"
 
 	"github.com/spf13/cobra"
-	"github.com/otiai10/copy"
 )
 
-// moveCmd represents the move command
+// `new` creates a new Teflon object from a prototype
 var newCmd = &cobra.Command{
 	Use:   "new <target..>",
 	Short: "Creates a new Teflon object based on a prototype.",
@@ -48,6 +48,7 @@ func newRun(cmd *cobra.Command, args []string) {
 			log.Fatalln(err)
 		}
 
+		// Check if target exists
 		if _, err := os.Stat(absTarget); !os.IsNotExist(err) {
 			log.Printf("ABORT: '%v' already exists.", target)
 			os.Exit(1)
@@ -55,10 +56,8 @@ func newRun(cmd *cobra.Command, args []string) {
 
 		targetDir, targetName := filepath.Split(absTarget)
 
-		showDir, err := teflon.FindShowRoot(targetDir)
-		if err != nil {
-			log.Println(err)
-		}
+		pdl := teflon.FindProtoDirs(targetDir)
+		log.Println("Proto dir list:", pdl)
 
 		if proto == "" {
 			// Infering prototype from file name.
@@ -66,13 +65,51 @@ func newRun(cmd *cobra.Command, args []string) {
 			proto = split[0]
 		}
 
-		protoDir := filepath.Join(showDir, teflon.ProtoDirName)
-		proto = filepath.Join(protoDir, proto)
+		var p string
+		for _, pd := range pdl {
+			p = filepath.Join(pd, proto)
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				p = ""
+				continue
+			}
+			break
+		}
 
-		err = copy.Copy(proto, absTarget)
+		if p == "" {
+			log.Fatalln("No prototype found:", proto)
+		}
+
+		err = copy.Copy(p, absTarget)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Printf("DONE: Created '%v' based on '%v'.", target, proto)
+
+		// Set Proto: field on target
+		o, err := teflon.InitObject(absTarget)
+		if err != nil {
+			log.Fatalln("Couldn't create object:", err)
+		}
+
+		o.Proto = p
+		o.Instances = []string{}
+
+		if o.SyncMeta() != nil {
+			log.Fatalln("Couldn't write meta of newly created show:", err)
+		}
+
+		// Set Instances: field on proto
+		o, err = teflon.InitObject(p)
+		if err != nil {
+			log.Fatalln("Couldn't create object:", err)
+		}
+
+		o.Instances = append(o.Instances, absTarget)
+		log.Println("Instances: ", o.Instances)
+
+		if o.SyncMeta() != nil {
+			log.Fatalln("Couldn't write meta of newly created show:", err)
+		}
+		log.Printf("DONE: Created '%v' based on '%v'.", target, p)
+
 	}
 }

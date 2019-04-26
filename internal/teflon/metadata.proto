@@ -5,4 +5,6 @@ package teflon;
 message PersistentMeta {
   string Proto = 1;
   map<string, string> UserData = 2;
+
+  repeated string Instances = 16; 
 }
