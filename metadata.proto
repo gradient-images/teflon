@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package teflon;
+
+message PersistentMeta {
+  string Proto = 1;
+  repeated string Instances = 3;
+  map<string, string> UserData = 2;
+  ImgInfo ImgInfo = 4;
+  Seq Seq = 5;
+}
+
+message ImgInfo {
+  int32 Width = 1;
+  int32 Height = 2;
+}
+
+message Seq {
+  string BaseName = 1;
+  int32 First = 2;
+  int32 Last = 3;
+}

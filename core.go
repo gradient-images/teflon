@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package teflon implements all the core system functionalities, like metadata
+// management, prototyping, sequences and more.
 package teflon
 
 import (
@@ -55,7 +57,10 @@ func (f FileInfo) MarshalJSON() ([]byte, error) {
 }
 
 type TObject struct {
+	Show     string
 	Path     string
+	Parent   string
+	Children []string
 	FileInfo FileInfo
 	PersistentMeta
 }
