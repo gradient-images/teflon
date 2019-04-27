@@ -28,8 +28,7 @@ import (
 )
 
 var (
-	TeflonRoot string
-	TeflonDir  string
+	TeflonRoot string // Full path to the Teflon *root directory*
 )
 
 const (
@@ -54,6 +53,11 @@ func (f FileInfo) MarshalJSON() ([]byte, error) {
 		"ModTime": f.ModTime(),
 		"IsDir":   f.IsDir(),
 	})
+}
+
+// TeflonDir() returns the path to the Teflon *config directory*.
+func TeflonDir() string {
+	return filepath.Join(TeflonRoot, TeflonDirName)
 }
 
 type TObject struct {
