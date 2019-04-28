@@ -29,7 +29,7 @@ var setCmd = &cobra.Command{
 is specified it will run for '.'. If the meta file doesn't exist 'meta set'
 will create a new one. If only a key is given to the -d flag, the entry for
 the key will be deleted.`,
-	Run: setRun,
+	Run: Set,
 }
 
 func init() {
@@ -38,30 +38,33 @@ func init() {
 	rootCmd.AddCommand(setCmd)
 }
 
-func setRun(cmd *cobra.Command, args []string) {
-	log.Print("'set' command called")
+// Set() or `teflon set` sets and/or deletes metadata entries into the UserSection of
+// the TObject and writes the changes to disk.
+func Set(cmd *cobra.Command, args []string) {
+	log.Print("DEBUG: 'set' command called")
 	if len(args) == 0 {
 		args = append(args, ".")
-		log.Println("No targets given, running for '.' .")
+		log.Println("DEBUG: No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.InitObject(target)
+		o, err := teflon.NewInitObject(target)
 		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
+			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
 		for _, data := range DataList {
 			s := strings.SplitN(data, ":", 2)
 			if len(s) < 2 {
-				log.Fatalln("FALTAL: Malformed metadata:", data)
+				log.Fatalln("ABORT: Malformed metadata:", data)
 			}
 			if s[1] == "" {
-				log.Println("Deleting metadata entry:", s[0])
+				log.Println("SUCCESS: Deleting metadata entry:", s[0])
 				o.DelMeta(s[0])
 			} else {
-				log.Println("Setting metadata entry:", s[0]+":", s[1])
+				log.Printf("SUCCESS: Set metadata: '%s: %s'", s[0], s[1])
 				o.SetMeta(s[0], s[1])
 			}
 		}
 		o.SyncMeta()
+		log.Printf("SUCCESS: All changes written to: '%s'", target)
 	}
 }

@@ -42,7 +42,7 @@ func getRun(cmd *cobra.Command, args []string) {
 		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.InitObject(target)
+		o, err := teflon.NewInitObject(target)
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
 		}

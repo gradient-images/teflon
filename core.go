@@ -11,36 +11,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package teflon implements all the core system functionalities, like metadata
-// management, prototyping, sequences and more.
+// The teflon package implements all the core system functionalities of Teflon,
+// currently the memory and disk representation of teflon objects and prototyping.
+//
+// Glossary
+//
+// "teflon directory": Configuration directory for the `teflon` command.
+//
+// "meta directory": Directory containing metadata for the dir and its content. Always
+// called `.teflon`.
+//
+// "show": A self containing administrative structure.
+//
+// "target": A relative or absolute filename in the file-system.
 package teflon
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
+	protobuf "github.com/golang/protobuf/proto"
 )
 
-var (
-	TeflonRoot string // Full path to the Teflon root directory.
-)
+// Full path to the Teflon directory, which stores configuration and show prototypes
+// for the system. The teflon command sets its content from the $TEFLONDIR environment
+// variable.
+var TeflonDir string
 
 const (
-	TeflonDirName    = ".teflon_root"
 	ShowProtoDirName = "show_proto"
-	ShowPrefix       = "SHOW:"
+	ShowPrefix       = "file://"
 	protoDirName     = "proto"
 	metaDirName      = ".teflon"
 	metaDirMetaName  = "_"
 	metaExtension    = "._"
 )
 
+// TObject is the main type of teflon. All Teflon objects are represented by this
+// struct in RAM.
+type TObject struct {
+	Show     string
+	Path     string
+	Parent   *TObject
+	Children []*TObject
+	FileInfo FileInfo
+	PersistentMeta
+}
+
+// Helper struct type
 type FileInfo struct {
 	os.FileInfo
 }
@@ -55,20 +77,7 @@ func (f FileInfo) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// TeflonDir() returns the path to the Teflon config directory.
-func TeflonDir() string {
-	return filepath.Join(TeflonRoot, TeflonDirName)
-}
-
-type TObject struct {
-	Show     string
-	Path     string
-	Parent   string
-	Children []string
-	FileInfo FileInfo
-	PersistentMeta
-}
-
+// Returns an unitialized TObject with only the full path set to the input is set.
 func NewObject(path string) (*TObject, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -77,7 +86,8 @@ func NewObject(path string) (*TObject, error) {
 	return &TObject{Path: path}, nil
 }
 
-func InitObject(path string) (*TObject, error) {
+// Returns a new initialized TObject.
+func NewInitObject(path string) (*TObject, error) {
 	o, err := NewObject(path)
 	if err != nil {
 		return nil, err
@@ -89,6 +99,7 @@ func InitObject(path string) (*TObject, error) {
 	return o, nil
 }
 
+// InitMeta() initializes metadata of a TObject.
 func (o *TObject) InitMeta() error {
 	stat, err := os.Stat(o.Path)
 	if err != nil {
@@ -96,21 +107,28 @@ func (o *TObject) InitMeta() error {
 	}
 	o.FileInfo = FileInfo{stat}
 
-	if _, err := os.Stat(o.MetaFile()); os.IsNotExist(err) {
-		o.UserData = make(map[string]string)
-	} else {
+	if _, err := os.Stat(o.MetaFile()); !os.IsNotExist(err) {
 		in, err := ioutil.ReadFile(o.MetaFile())
 		if err != nil {
 			return err
 		}
-		err = proto.Unmarshal(in, o)
+		err = protobuf.Unmarshal(in, o)
 		if err != nil {
 			return err
 		}
 	}
+	if o.UserData == nil {
+		o.UserData = make(map[string]string)
+	}
+
 	return nil
 }
 
+// MetaFile() returns the file path to the TObject's meta file. In the case of a
+// file it is:
+//   $DIR/.teflon/$FILE._
+// In the case of a directory it is:
+//   $DIR/.teflon/_
 func (o *TObject) MetaFile() string {
 	if o.FileInfo.IsDir() {
 		return filepath.Join(o.Path, metaDirName, metaDirMetaName)
@@ -127,8 +145,9 @@ func (o *TObject) DelMeta(key string) {
 	delete(o.UserData, key)
 }
 
+// SincMeta() writes metadata to disk.
 func (o *TObject) SyncMeta() error {
-	out, err := proto.Marshal(o)
+	out, err := protobuf.Marshal(o)
 	if err != nil {
 		return err
 	}
@@ -165,7 +184,7 @@ func IsDir(target string) bool {
 }
 
 func IsShow(target string) bool {
-	o, err := InitObject(target)
+	o, err := NewInitObject(target)
 	if err != nil {
 		return false
 	}
@@ -179,17 +198,17 @@ func FindProtoDirs(target string) []string {
 	pdl := []string{}
 	target = filepath.Clean(target)
 	for {
-		log.Println("Checking for proto:", target)
+		log.Println("DEBUG: Checking for proto:", target)
 		d := filepath.Join(target, metaDirName, protoDirName)
 		if IsDir(d) {
 			pdl = append(pdl, d)
 		}
 		if IsShow(target) {
-			log.Println("Reached Show root:", target)
+			log.Println("DEBUG: Reached Show root:", target)
 			break
 		}
 		p := filepath.Dir(target)
-		log.Println("Moving on to parent:", p)
+		log.Println("DEBUG: Moving on to parent:", p)
 		if p == target {
 			break
 		}
@@ -198,15 +217,15 @@ func FindProtoDirs(target string) []string {
 	return pdl
 }
 
-func FindShowRoot(target string) (string, error) {
-	dirName := filepath.Join(target, ShowProtoDirName)
-	if IsDir(dirName) {
-		return target, nil
+// FindShowRoot finds the show root of the given target.
+func FindShowRoot(target string) string {
+	if IsShow(target) {
+		return target
 	}
 
 	parent := filepath.Dir(target)
 	if parent == target {
-		return "", errors.New("Show not found.")
+		return ""
 	}
 
 	return FindShowRoot(parent)

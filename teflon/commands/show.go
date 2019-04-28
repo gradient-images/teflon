@@ -14,11 +14,11 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-
-	// "strings"
+	"strings"
 
 	"github.com/gradient-images/teflon"
 
@@ -28,11 +28,12 @@ import (
 
 // moveCmd represents the move command
 var showCmd = &cobra.Command{
-	Use:   "show [target]",
+	Use:   "show [<target>]",
+	Args:  cobra.MaximumNArgs(1),
+	Run:   Show,
 	Short: "Manipulates show objects.",
-	Long: `Without any subcommand 'teflon show' prints the metadata of the show the target
+	Long: `Without any subcommand 'teflon show' prints the absolute path of the show the target
 belongs to. If target is omitted, it defaults to the current directory.`,
-	Run: showRun,
 }
 
 var showNewCmd = &cobra.Command{
@@ -40,7 +41,7 @@ var showNewCmd = &cobra.Command{
 	Short: "Creates a new show from a prototype.",
 	Long: `Command 'teflon show new' creates a new show at the tartget location based on a
 prototype found in the $TEFLON/show_proto directory.`,
-	Run: showNewRun,
+	Run: ShowNew,
 }
 
 var showProto string
@@ -51,39 +52,50 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 }
 
-func showRun(cmd *cobra.Command, args []string) {
+// Prints the absolute path to the show the target belongs to.
+func Show(cmd *cobra.Command, args []string) {
 	log.Print("DEBUG: 'show' command called")
+	if len(args) == 0 {
+		args = append(args, ".")
+		log.Println("DEBUG: No targets given, running for '.' .")
+	}
+	target, err := filepath.Abs(args[0])
+	if err != nil {
+		log.Fatalln("Malformed target:", args[0])
+	}
+	fmt.Println(teflon.FindShowRoot(target))
 }
 
-func showNewRun(cmd *cobra.Command, args []string) {
-	for _, target := range args {
+// ShowNew() or `teflon show new` creates a new show based on a template in `teflon.TeflonDir`.
+// The arguments are targets.
+func ShowNew(cmd *cobra.Command, targets []string) {
+	for _, target := range targets {
 		absTarget, err := filepath.Abs(target)
 		if err != nil {
 			log.Fatalln(err)
 		}
 
 		if _, err := os.Stat(absTarget); !os.IsNotExist(err) {
-			log.Printf("ABORT: '%v' already exists.", target)
-			os.Exit(1)
+			log.Fatalf("ABORT: Target already exists: '%s'", absTarget)
 		}
 
-		proto := filepath.Join(teflon.TeflonDir(), teflon.ShowProtoDirName, showProto)
+		proto := filepath.Join(teflon.TeflonDir, teflon.ShowProtoDirName, showProto)
 
 		err = copy.Copy(proto, absTarget)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Printf("DONE: Created new show '%v' based on '%v'.", absTarget, showProto)
+		log.Printf("SUCCESS: Created new show: %s (%s)", absTarget, showProto)
 
-		o, err := teflon.InitObject(target)
+		o, err := teflon.NewInitObject(target)
 		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
+			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
 
-		o.Proto = teflon.ShowPrefix + showProto
+		o.Proto = teflon.ShowPrefix + strings.TrimPrefix(proto, "/")
 
 		if o.SyncMeta() != nil {
-			log.Fatalln("Couldn't write meta of newly created show:", err)
+			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)
 		}
 	}
 }
