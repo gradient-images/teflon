@@ -39,7 +39,7 @@ func init() {
 }
 
 // Set() or `teflon set` sets and/or deletes metadata entries into the UserSection of
-// the TObject and writes the changes to disk.
+// the TeflonObject and writes the changes to disk.
 func Set(cmd *cobra.Command, args []string) {
 	log.Print("DEBUG: 'set' command called")
 	if len(args) == 0 {

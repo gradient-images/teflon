@@ -18,7 +18,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/gradient-images/teflon"
 
@@ -52,21 +51,49 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 }
 
-// Prints the absolute path to the show the target belongs to.
+// Show or `teflon show` Prints the absolute path to the show the target belongs to.
 func Show(cmd *cobra.Command, args []string) {
 	log.Print("DEBUG: 'show' command called")
+	var target string
+
+	// Check if a target is given
 	if len(args) == 0 {
-		args = append(args, ".")
+		target = "."
 		log.Println("DEBUG: No targets given, running for '.' .")
+	} else {
+		target = args[0]
 	}
-	target, err := filepath.Abs(args[0])
+
+	// Create new object for target
+	o, err := teflon.NewTeflonObject(target)
 	if err != nil {
-		log.Fatalln("Malformed target:", args[0])
+		log.Fatalln("ABORT: Unable to init object:", target, err)
 	}
-	fmt.Println(teflon.FindShowRoot(target))
+	log.Printf("DEBUG: Path: %v", o.Path)
+	log.Printf("DEBUG: Objects size: %v", len(teflon.Objects))
+	if o.Show != nil {
+		fmt.Println(o.Show.Path)
+	} else {
+		fmt.Println("ORPHAN")
+	}
 }
 
-// ShowNew() or `teflon show new` creates a new show based on a template in `teflon.TeflonDir`.
+// DELETE:
+//
+// func Show(cmd *cobra.Command, args []string) {
+// 	log.Print("DEBUG: 'show' command called")
+// 	if len(args) == 0 {
+// 		args = append(args, ".")
+// 		log.Println("DEBUG: No targets given, running for '.' .")
+// 	}
+// 	target, err := filepath.Abs(args[0])
+// 	if err != nil {
+// 		log.Fatalln("Malformed target:", args[0])
+// 	}
+// 	fmt.Println(teflon.FindShowRoot(target))
+// }
+
+// ShowNew or `teflon show new` creates a new show based on a template in `teflon.TeflonConf`.
 // The arguments are targets.
 func ShowNew(cmd *cobra.Command, targets []string) {
 	for _, target := range targets {
@@ -79,7 +106,7 @@ func ShowNew(cmd *cobra.Command, targets []string) {
 			log.Fatalf("ABORT: Target already exists: '%s'", absTarget)
 		}
 
-		proto := filepath.Join(teflon.TeflonDir, teflon.ShowProtoDirName, showProto)
+		proto := filepath.Join(teflon.TeflonConf, teflon.ShowProtoDirName, showProto)
 
 		err = copy.Copy(proto, absTarget)
 		if err != nil {
@@ -92,7 +119,7 @@ func ShowNew(cmd *cobra.Command, targets []string) {
 			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
 
-		o.Proto = teflon.ShowPrefix + strings.TrimPrefix(proto, "/")
+		o.Proto = "/" + proto
 
 		if o.SyncMeta() != nil {
 			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)

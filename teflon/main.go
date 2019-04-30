@@ -23,9 +23,9 @@ import (
 )
 
 func main() {
-	teflon.TeflonDir = os.Getenv("TEFLONDIR")
-	if teflon.TeflonDir == "" {
-		log.Println("FATAL: $TEFLONDIR environment variable is not set.")
+	teflon.TeflonConf = os.Getenv("TEFLONCONF")
+	if teflon.TeflonConf == "" {
+		log.Println("FATAL: $TEFLONCONF environment variable is not set.")
 		os.Exit(1)
 	}
 	commands.Execute()
