@@ -148,8 +148,9 @@ func NewTeflonObject(target string) (*TeflonObject, error) {
 	}
 
 	// Check if it is show root
-	if (o.Proto == "" || strings.HasPrefix(o.Proto, "//")) && !strings.HasPrefix(o.Proto, "/") {
-		log.Println("DEBUG: Not show.")
+	if o.ShowRoot {
+		o.Show = o
+	} else {
 		parent := filepath.Dir(o.Path)
 
 		// Check if reached file-system root
@@ -161,9 +162,6 @@ func NewTeflonObject(target string) (*TeflonObject, error) {
 			o.Parent = p
 			o.Show = p.Show
 		}
-	} else {
-		log.Println("DEBUG: Show.")
-		o.Show = o
 	}
 
 	Objects[fspath] = o

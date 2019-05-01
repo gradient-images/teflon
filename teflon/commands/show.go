@@ -51,7 +51,7 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 }
 
-// Show or `teflon show` Prints the absolute path to the show the target belongs to.
+// Show (`teflon show`) prints the absolute path to the show the target belongs to.
 func Show(cmd *cobra.Command, args []string) {
 	log.Print("DEBUG: 'show' command called")
 	var target string
@@ -78,48 +78,34 @@ func Show(cmd *cobra.Command, args []string) {
 	}
 }
 
-// DELETE:
-//
-// func Show(cmd *cobra.Command, args []string) {
-// 	log.Print("DEBUG: 'show' command called")
-// 	if len(args) == 0 {
-// 		args = append(args, ".")
-// 		log.Println("DEBUG: No targets given, running for '.' .")
-// 	}
-// 	target, err := filepath.Abs(args[0])
-// 	if err != nil {
-// 		log.Fatalln("Malformed target:", args[0])
-// 	}
-// 	fmt.Println(teflon.FindShowRoot(target))
-// }
-
-// ShowNew or `teflon show new` creates a new show based on a template in `teflon.TeflonConf`.
-// The arguments are targets.
+// ShowNew (`teflon show new`) creates a new show based on a template in
+// `teflon.TeflonConf`. The arguments are targets.
 func ShowNew(cmd *cobra.Command, targets []string) {
 	for _, target := range targets {
-		absTarget, err := filepath.Abs(target)
+		fspath, err := teflon.FSPath(target)
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		if _, err := os.Stat(absTarget); !os.IsNotExist(err) {
-			log.Fatalf("ABORT: Target already exists: '%s'", absTarget)
+		if _, err := os.Stat(fspath); !os.IsNotExist(err) {
+			log.Fatalf("ABORT: Target already exists: '%s'", fspath)
 		}
 
 		proto := filepath.Join(teflon.TeflonConf, teflon.ShowProtoDirName, showProto)
 
-		err = copy.Copy(proto, absTarget)
+		err = copy.Copy(proto, fspath)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Printf("SUCCESS: Created new show: %s (%s)", absTarget, showProto)
+		log.Printf("SUCCESS: Created new show: %s (%s)", fspath, showProto)
 
-		o, err := teflon.NewInitObject(target)
+		o, err := teflon.NewTeflonObject(fspath)
 		if err != nil {
 			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
 
-		o.Proto = "/" + proto
+		o.ShowRoot = true
+		o.Proto = proto
 
 		if o.SyncMeta() != nil {
 			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)

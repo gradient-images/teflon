@@ -3,11 +3,12 @@ syntax = "proto3";
 package teflon;
 
 message PersistentMeta {
-  string Proto = 1;
+  bool ShowRoot = 1;
+  string Proto = 2;
   repeated string Instances = 3;
-  map<string, string> UserData = 2;
-  ImgInfo ImgInfo = 4;
-  Seq Seq = 5;
+  map<string, string> UserData = 4;
+  ImgInfo ImgInfo = 5;
+  Seq Seq = 6;
 }
 
 message ImgInfo {
