@@ -46,6 +46,7 @@ import (
 	"strings"
 
 	protobuf "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 )
 
 // Full path to the configuration directory, which stores configuration and show
@@ -70,26 +71,25 @@ const (
 // TeflonObject is the main type of teflon. All Teflon objects are represented by
 // this struct in RAM.
 type TeflonObject struct {
-	Show     *TeflonObject
 	Path     string
-	Parent   *TeflonObject
-	Children []*TeflonObject
+	Show     *TeflonObject
 	FileInfo FileInfo
+	Parent   *TeflonObject
 	PersistentMeta
 }
 
-// Helper struct type
-type FileInfo struct {
-	os.FileInfo
-}
-
-func (f FileInfo) MarshalJSON() ([]byte, error) {
+// DELETE:
+//
+func (o TeflonObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"Name":    f.Name(),
-		"Size":    f.Size(),
-		"Mode":    f.Mode(),
-		"ModTime": f.ModTime(),
-		"IsDir":   f.IsDir(),
+		"Show":      o.Show.Path,
+		"Path":      o.Path,
+		"Parent":    o.Parent.Path,
+		"FileInfo":  o.FileInfo,
+		"ShowRoot":  o.ShowRoot,
+		"Proto":     o.Proto,
+		"Instances": o.Instances,
+		"UserData":  o.UserData,
 	})
 }
 
@@ -127,7 +127,14 @@ func NewTeflonObject(target string) (*TeflonObject, error) {
 	if err != nil {
 		return nil, err
 	}
-	o.FileInfo = FileInfo{stat}
+	modtime, _ := ptypes.TimestampProto(stat.ModTime())
+	o.FileInfo = FileInfo{
+		Name:    stat.Name(),
+		Size:    stat.Size(),
+		Mode:    uint32(stat.Mode()),
+		ModTime: modtime,
+		IsDir:   stat.IsDir(),
+	}
 	m := o.MetaFile()
 
 	// Read meta file if exists
@@ -219,11 +226,11 @@ func NewInitObject(path string) (*TeflonObject, error) {
 
 // InitMeta() initializes metadata of a TeflonObject.
 func (o *TeflonObject) InitMeta() error {
-	stat, err := os.Stat(o.Path)
-	if err != nil {
-		return err
-	}
-	o.FileInfo = FileInfo{stat}
+	// stat, err := os.Stat(o.Path)
+	// if err != nil {
+	// 	return err
+	// }
+	// o.FileInfo = FileInfo{stat}
 
 	if _, err := os.Stat(o.MetaFile()); !os.IsNotExist(err) {
 		in, err := ioutil.ReadFile(o.MetaFile())
@@ -248,7 +255,7 @@ func (o *TeflonObject) InitMeta() error {
 // In the case of a directory it is:
 //   $DIR/.teflon/_
 func (o *TeflonObject) MetaFile() string {
-	if o.FileInfo.IsDir() {
+	if o.FileInfo.IsDir {
 		return filepath.Join(o.Path, teflonDirName, metaDirMetaName)
 	}
 	d, n := filepath.Split(o.Path)

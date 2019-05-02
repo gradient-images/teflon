@@ -36,19 +36,18 @@ func init() {
 }
 
 func getRun(cmd *cobra.Command, args []string) {
-	log.Println("'get' command called")
 	if len(args) == 0 {
 		args = append(args, ".")
 		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.NewInitObject(target)
+		o, err := teflon.NewTeflonObject(target)
 		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
+			log.Fatalln("Couldn't init object:", err)
 		}
 		d, err := json.MarshalIndent(&o, "", "  ")
 		if err != nil {
-			log.Fatalf("error: %v", err)
+			log.Fatalln("Couldnt marshal JSON:", err)
 		}
 		fmt.Println(string(d))
 	}

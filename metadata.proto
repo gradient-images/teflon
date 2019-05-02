@@ -1,6 +1,28 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package teflon;
+
+message WireObject {
+  VolatileMeta Volatile = 1;
+  PersistentMeta Persistent = 2;
+}
+
+message VolatileMeta {
+  string Path = 1;
+  string Show = 2;
+  FileInfo FileInfo = 3;
+  string Parent = 4;
+}
+
+message FileInfo {
+  string Name = 1;
+  int64 Size = 2;
+  uint32 Mode = 3;
+  google.protobuf.Timestamp ModTime = 4;
+  bool IsDir =5;
+}
 
 message PersistentMeta {
   bool ShowRoot = 1;
