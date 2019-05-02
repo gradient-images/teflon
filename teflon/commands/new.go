@@ -85,7 +85,7 @@ func newRun(cmd *cobra.Command, args []string) {
 		}
 
 		// Set Proto: field on target
-		o, err := teflon.NewInitObject(absTarget)
+		o, err := teflon.NewTeflonObject(absTarget)
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
 		}
@@ -98,7 +98,7 @@ func newRun(cmd *cobra.Command, args []string) {
 		}
 
 		// Set Instances: field on proto
-		o, err = teflon.NewInitObject(p)
+		o, err = teflon.NewTeflonObject(p)
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
 		}

@@ -36,16 +36,14 @@ func init() {
 }
 
 func protoRun(cmd *cobra.Command, args []string) {
-	log.Println("'proto' command called")
 	if len(args) == 0 {
 		args = append(args, ".")
-		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.NewInitObject(target)
+		o, err := teflon.NewTeflonObject(target)
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
 		}
-		fmt.Printf("%s: %s\n", target, o.Proto)
+		fmt.Println(o.Proto)
 	}
 }

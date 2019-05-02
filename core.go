@@ -40,7 +40,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,8 +77,8 @@ type TeflonObject struct {
 	PersistentMeta
 }
 
-// DELETE:
-//
+// Marshaling JSON manually to avoid recursion. There is probably a more elegant
+// way of doing this.
 func (o TeflonObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"Show":      o.Show.Path,
@@ -175,6 +174,7 @@ func NewTeflonObject(target string) (*TeflonObject, error) {
 	return o, nil
 }
 
+// Converts a target to a file-sytem absolute path.
 func FSPath(target string) (string, error) {
 
 	// Checks if target is show absolute.
@@ -202,53 +202,6 @@ func FSPath(target string) (string, error) {
 	return fspath, nil
 }
 
-// Returns an unitialized TeflonObject with only the full path set to the input is set.
-func NewObject(path string) (*TeflonObject, error) {
-	path, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-	return &TeflonObject{Path: path}, nil
-}
-
-// Returns a new initialized TeflonObject.
-func NewInitObject(path string) (*TeflonObject, error) {
-	o, err := NewObject(path)
-	if err != nil {
-		return nil, err
-	}
-	err = o.InitMeta()
-	if err != nil {
-		return nil, err
-	}
-	return o, nil
-}
-
-// InitMeta() initializes metadata of a TeflonObject.
-func (o *TeflonObject) InitMeta() error {
-	// stat, err := os.Stat(o.Path)
-	// if err != nil {
-	// 	return err
-	// }
-	// o.FileInfo = FileInfo{stat}
-
-	if _, err := os.Stat(o.MetaFile()); !os.IsNotExist(err) {
-		in, err := ioutil.ReadFile(o.MetaFile())
-		if err != nil {
-			return err
-		}
-		err = protobuf.Unmarshal(in, o)
-		if err != nil {
-			return err
-		}
-	}
-	if o.UserData == nil {
-		o.UserData = make(map[string]string)
-	}
-
-	return nil
-}
-
 // MetaFile returns the file path to the TeflonObject's meta file. In the case of a
 // file it is:
 //   $DIR/.teflon/$FILE._
@@ -262,10 +215,12 @@ func (o *TeflonObject) MetaFile() string {
 	return filepath.Join(d, teflonDirName, n+metaExtension)
 }
 
+// Sets an entry in the user section of the metadata.
 func (o *TeflonObject) SetMeta(key, value string) {
 	o.UserData[key] = value
 }
 
+// Deletes an entry from the user section of the metadata.
 func (o *TeflonObject) DelMeta(key string) {
 	delete(o.UserData, key)
 }
@@ -277,7 +232,7 @@ func (o *TeflonObject) SyncMeta() error {
 		return err
 	}
 
-	o.createTeflonConf()
+	o.createTeflonDir()
 
 	err = ioutil.WriteFile(o.MetaFile(), out, 0644)
 	if err != nil {
@@ -286,7 +241,8 @@ func (o *TeflonObject) SyncMeta() error {
 	return nil
 }
 
-func (o TeflonObject) createTeflonConf() error {
+// Creates the Teflon directory for the object's meta file.
+func (o TeflonObject) createTeflonDir() error {
 	err := os.Mkdir(filepath.Dir(o.MetaFile()), 0755)
 	if err != nil {
 		if os.IsExist(err) {
@@ -297,8 +253,9 @@ func (o TeflonObject) createTeflonConf() error {
 	return nil
 }
 
-func IsDir(target string) bool {
-	fi, err := os.Stat(target)
+// Tells if a path is a dir or not.
+func IsDir(fspath string) bool {
+	fi, err := os.Stat(fspath)
 	if err != nil {
 		return false
 	}
@@ -309,50 +266,30 @@ func IsDir(target string) bool {
 }
 
 func IsShow(target string) bool {
-	o, err := NewInitObject(target)
+	o, err := NewTeflonObject(target)
 	if err != nil {
 		return false
 	}
-	// If Proto is a file-system absolute path then it's a proto.
-	if strings.HasPrefix(o.Proto, "//") {
-		return true
-	}
-	return false
+	return o.ShowRoot
 }
 
+// Creates a list of objects containing proto directories.
 func FindProtoDirs(target string) []string {
 	pdl := []string{}
 	target = filepath.Clean(target)
 	for {
-		log.Println("DEBUG: Checking for proto:", target)
 		d := filepath.Join(target, teflonDirName, protoDirName)
 		if IsDir(d) {
 			pdl = append(pdl, d)
 		}
 		if IsShow(target) {
-			log.Println("DEBUG: Reached Show root:", target)
 			break
 		}
 		p := filepath.Dir(target)
-		log.Println("DEBUG: Moving on to parent:", p)
 		if p == target {
 			break
 		}
 		target = p
 	}
 	return pdl
-}
-
-// FindShowRoot finds the show root of the given target.
-func FindShowRoot(target string) string {
-	if IsShow(target) {
-		return target
-	}
-
-	parent := filepath.Dir(target)
-	if parent == target {
-		return ""
-	}
-
-	return FindShowRoot(parent)
 }

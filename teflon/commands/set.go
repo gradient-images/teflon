@@ -47,7 +47,7 @@ func Set(cmd *cobra.Command, args []string) {
 		log.Println("DEBUG: No targets given, running for '.' .")
 	}
 	for _, target := range args {
-		o, err := teflon.NewInitObject(target)
+		o, err := teflon.NewTeflonObject(target)
 		if err != nil {
 			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
