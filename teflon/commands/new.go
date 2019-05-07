@@ -47,7 +47,6 @@ func newRun(cmd *cobra.Command, args []string) {
 
 		// Create object for parent dir.
 		targetDir, targetName := filepath.Split(fspath)
-		log.Println("DEBUG: Target:", target, "Dir:", targetDir, "Name:", targetName)
 		parent, err := teflon.NewTeflonObject(targetDir)
 		if err != nil {
 			log.Fatalln("ABORT: Couldn't create object for containing dir:", err)

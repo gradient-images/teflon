@@ -91,7 +91,6 @@ func (o *TeflonObject) SetProto(proto string) error {
 
 	// Remove old proto from old proto's instance list.
 	oldProto := o.Proto
-	log.Println("DEBUG: Old prototype:", oldProto)
 	if o.Proto != "" {
 		op, err := NewTeflonObject(oldProto)
 		if err != nil {
