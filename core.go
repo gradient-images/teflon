@@ -79,9 +79,9 @@ type TeflonObject struct {
 // way of doing this.
 func (o TeflonObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"Show":      o.Show.Path,
+		"Show":      o.Show.GetPath(),
 		"Path":      o.Path,
-		"Parent":    o.Parent.Path,
+		"Parent":    o.Parent.GetPath(),
 		"FileInfo":  o.FileInfo,
 		"ShowRoot":  o.ShowRoot,
 		"Proto":     o.Proto,
@@ -90,18 +90,27 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// NewTeflonObject creates a new initialized Teflon object.
+// Helper function to get empty string for nil objects during JSON marshaling.
+func (o *TeflonObject) GetPath() string {
+	if o != nil {
+		return o.Path
+	}
+	return ""
+}
+
+// NewTeflonObject creates a new initialized Teflon object in memory, that
+// represents a file-system object.
 //
 // Initialization is always complete. It is not allowed to have half-baked objects
 // in memory. Since it has to set the Show field to its correct value it first has
-// to find the show root of the target. This is done recursively by creating the
-// parent object. This means that not only the created object is fully initialized
-// but there will be a complete chain of object leading from the target to the show
-// root.
+// to find the show root of the target. This is done recursively by creating all
+// the parent objects until and including the show root. This means that not only
+// the created object is fully initialized but there will be a complete chain of
+// object leading from the target to the show root.
 //
-// If the target is show-absolute then the system first has to find the show
-// root from the current directory to get the file-system path of the target. This
-// means that the end result is two initialized chains to the same show root.
+// If the target is show-absolute then the system first has to find the show root
+// from the current directory to get the file-system path of the target. This means
+// that the end result is two initialized chains to the same show root.
 func NewTeflonObject(target string) (*TeflonObject, error) {
 
 	// Convert target to file-system path
