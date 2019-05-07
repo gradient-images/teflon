@@ -38,11 +38,9 @@ package teflon
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -174,34 +172,6 @@ func NewTeflonObject(target string) (*TeflonObject, error) {
 	return o, nil
 }
 
-// Converts a target to a file-sytem absolute path.
-func FSPath(target string) (string, error) {
-
-	// Checks if target is show absolute.
-	if strings.HasPrefix(target, "//") {
-		o, err := NewTeflonObject(".")
-		if err != nil {
-			return "", err
-		}
-		if o.Show == nil {
-			return "", errors.New("Couldn't resolve '//'.")
-		}
-		return filepath.Join(o.Show.Path, strings.TrimPrefix(target, "/")), nil
-	}
-
-	// Checks if target is file-system absolute.
-	if strings.HasPrefix(target, "/") {
-		return filepath.Clean(target), nil
-	}
-
-	// If neither of the above then it's relative.
-	fspath, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
-	}
-	return fspath, nil
-}
-
 // MetaFile returns the file path to the TeflonObject's meta file. In the case of a
 // file it is:
 //   $DIR/.teflon/$FILE._
@@ -251,45 +221,4 @@ func (o TeflonObject) createTeflonDir() error {
 		return err
 	}
 	return nil
-}
-
-// Tells if a path is a dir or not.
-func IsDir(fspath string) bool {
-	fi, err := os.Stat(fspath)
-	if err != nil {
-		return false
-	}
-	if fi.IsDir() {
-		return true
-	}
-	return false
-}
-
-func IsShow(target string) bool {
-	o, err := NewTeflonObject(target)
-	if err != nil {
-		return false
-	}
-	return o.ShowRoot
-}
-
-// Creates a list of objects containing proto directories.
-func FindProtoDirs(target string) []string {
-	pdl := []string{}
-	target = filepath.Clean(target)
-	for {
-		d := filepath.Join(target, teflonDirName, protoDirName)
-		if IsDir(d) {
-			pdl = append(pdl, d)
-		}
-		if IsShow(target) {
-			break
-		}
-		p := filepath.Dir(target)
-		if p == target {
-			break
-		}
-		target = p
-	}
-	return pdl
 }

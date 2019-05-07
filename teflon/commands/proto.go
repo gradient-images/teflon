@@ -44,6 +44,8 @@ func protoRun(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalln("Couldn't create object:", err)
 		}
-		fmt.Println(o.Proto)
+		if o.Proto != "" {
+			fmt.Println(o.Proto)
+		}
 	}
 }

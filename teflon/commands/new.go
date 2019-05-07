@@ -15,13 +15,10 @@ package commands
 
 import (
 	"log"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/gradient-images/teflon"
 	"github.com/otiai10/copy"
-
 	"github.com/spf13/cobra"
 )
 
@@ -34,82 +31,67 @@ creates a new object based on the one it finds matching the requested type.`,
 	Run: newRun,
 }
 
-var proto string
+var protoFlag string
 
 func init() {
-	newCmd.Flags().StringVarP(&proto, "proto", "p", "", "Prototype to create.")
+	newCmd.Flags().StringVarP(&protoFlag, "proto", "p", "", "Prototype to create.")
 	rootCmd.AddCommand(newCmd)
 }
 
 func newRun(cmd *cobra.Command, args []string) {
 	for _, target := range args {
-		absTarget, err := filepath.Abs(target)
+		fspath, err := teflon.FSPath(target)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalln("ABORT: Malformed target:", err)
 		}
 
-		// Check if target exists
-		if _, err := os.Stat(absTarget); !os.IsNotExist(err) {
-			log.Printf("ABORT: '%v' already exists.", target)
-			os.Exit(1)
+		// Create object for parent dir.
+		targetDir, targetName := filepath.Split(fspath)
+		log.Println("DEBUG: Target:", target, "Dir:", targetDir, "Name:", targetName)
+		parent, err := teflon.NewTeflonObject(targetDir)
+		if err != nil {
+			log.Fatalln("ABORT: Couldn't create object for containing dir:", err)
+		}
+		if parent.Show == nil {
+			log.Fatalln("ABORT: Prototyping not supported outside shows.")
 		}
 
-		targetDir, targetName := filepath.Split(absTarget)
-
-		pdl := teflon.FindProtoDirs(targetDir)
-		log.Println("Proto dir list:", pdl)
-
-		if proto == "" {
-			// Infering prototype from file name.
-			split := strings.SplitN(targetName, "_", 2)
-			proto = split[0]
-		}
-
-		var p string
-		for _, pd := range pdl {
-			p = filepath.Join(pd, proto)
-			if _, err := os.Stat(p); os.IsNotExist(err) {
-				p = ""
-				continue
+		// Check if explicit prototype is given then find appropriate proto.
+		var proto string
+		if protoFlag == "" {
+			proto, err = parent.FindProtoForTarget(targetName)
+			if err != nil {
+				log.Fatalln("ABORT: Can't find prototype:", err)
 			}
-			break
+		} else {
+			proto, err = parent.FindProto(protoFlag)
+			if err != nil {
+				log.Fatalln("ABORT: Can't find appropriate prototype:", err)
+			}
 		}
 
-		if p == "" {
-			log.Fatalln("No prototype found:", proto)
+		// Copy the prototype if target doesn't exist.
+		if !teflon.Exist(fspath) {
+			err = copy.Copy(proto, fspath)
+			if err != nil {
+				log.Fatalln("ABORT: Couldn't copy prototype:", err)
+			}
+			log.Printf("DEBUG: Copied '%s' to '%s'.", proto, fspath)
+		} else {
+			log.Println("DEBUG: Target exists, skipped copying of proto.")
 		}
 
-		err = copy.Copy(p, absTarget)
+		// Set Proto: field and clean instances on target.
+		o, err := teflon.NewTeflonObject(fspath)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
-
-		// Set Proto: field on target
-		o, err := teflon.NewTeflonObject(absTarget)
+		err = o.SetProto(proto)
 		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
+			log.Fatalln("ABORT: Couldn't set up proto references:", err)
 		}
 
-		o.Proto = p
-		o.Instances = []string{}
-
-		if o.SyncMeta() != nil {
-			log.Fatalln("Couldn't write meta of newly created show:", err)
-		}
-
-		// Set Instances: field on proto
-		o, err = teflon.NewTeflonObject(p)
-		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
-		}
-
-		o.Instances = append(o.Instances, absTarget)
-		log.Println("Instances: ", o.Instances)
-
-		if o.SyncMeta() != nil {
-			log.Fatalln("Couldn't write meta of newly created show:", err)
-		}
-		log.Printf("DONE: Created '%v' based on '%v'.", target, p)
+		log.Printf("SUCCESS: Prototyped '%v' based on '%v'.", target, proto)
 
 	}
 }
