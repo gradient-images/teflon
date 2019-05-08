@@ -43,8 +43,7 @@ func (o *TeflonObject) ListProtos() (map[string]string, error) {
 		}
 		for _, p := range protoList {
 			if _, ok := protoMap[p.Name()]; !ok {
-				saProto, _ := ShowAbs(filepath.Join(d, p.Name()))
-				protoMap[p.Name()] = saProto
+				protoMap[p.Name()] = ShowAbs(filepath.Join(d, p.Name()))
 			}
 		}
 		if o.ShowRoot {
@@ -122,14 +121,8 @@ func (o *TeflonObject) FindProtoForTarget(name string) (string, error) {
 // prototype's instance list to include the object.
 func (o *TeflonObject) SetProto(proto string) error {
 	// Convert proto and object path to show-absolute notation.
-	saProto, err := ShowAbs(proto)
-	if err != nil {
-		return err
-	}
-	saTarget, err := ShowAbs(o.Path)
-	if err != nil {
-		return err
-	}
+	saProto := ShowAbs(proto)
+	saTarget := ShowAbs(o.Path)
 
 	// Remove old proto from old proto's instance list.
 	oldProto := o.Proto
@@ -152,7 +145,7 @@ func (o *TeflonObject) SetProto(proto string) error {
 	// Set new prototype for the object.
 	o.Proto = saProto
 	o.Instances = []string{}
-	if o.SyncMeta() != nil {
+	if err := o.SyncMeta(); err != nil {
 		return err
 	}
 

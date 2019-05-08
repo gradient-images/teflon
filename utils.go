@@ -66,11 +66,12 @@ func FSPath(target string) (string, error) {
 	return fspath, nil
 }
 
-// Converts file-system absolute path to show-absolute notation.
-func ShowAbs(fspath string) (string, error) {
+// Converts file-system absolute path to show-absolute notation. If the conversion
+// can not be made, the function reurns the original string.
+func ShowAbs(fspath string) string {
 	o, err := NewTeflonObject(fspath)
 	if err != nil {
-		return "", err
+		return fspath
 	}
-	return strings.Replace(fspath, o.Show.Path, "/", 1), nil
+	return strings.Replace(fspath, o.Show.Path, "/", 1)
 }

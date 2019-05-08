@@ -40,7 +40,6 @@ func init() {
 func getRun(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		args = append(args, ".")
-		log.Println("No targets given, running for '.' .")
 	}
 	for _, target := range args {
 		o, err := teflon.NewTeflonObject(target)
