@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-// ListProtos lists all prototypes seen in the context of the object.
+// ListProtos lists all prototypes seen from the context of the object.
 func (o *TeflonObject) ListProtos() (map[string]string, error) {
 	if o.Show == nil {
 		return nil, errors.New("Prototyping not supported outside shows.")
@@ -55,19 +55,27 @@ func (o *TeflonObject) ListProtos() (map[string]string, error) {
 }
 
 // FindProto finds prototype by it's exact name in the context of object 'o'.
-func (p *TeflonObject) FindProto(proto string) (string, error) {
+func (o *TeflonObject) FindProto(proto string) (string, error) {
+	dir, proto := filepath.Split(proto)
+	if dir != "" {
+		var err error
+		o, err = NewTeflonObject(dir)
+		if err != nil {
+			return "", err
+		}
+	}
 	for {
 		// Create candidate.
-		c := filepath.Join(p.Path, teflonDirName, protoDirName, proto)
+		c := filepath.Join(o.Path, teflonDirName, protoDirName, proto)
 		// If proto exists.
 		if Exist(c) {
 			return c, nil
 		}
 		// If reached show root.
-		if p.ShowRoot {
+		if o.ShowRoot {
 			return "", errors.New("Couldn't find proto: " + proto)
 		}
-		p = p.Parent
+		o = o.Parent
 	}
 }
 
