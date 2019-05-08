@@ -15,12 +15,46 @@ package teflon
 
 import (
 	"errors"
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
-// Find prototype by exact name in the context of object 'o'.
+// ListProtos lists all prototypes seen in the context of the object.
+func (o *TeflonObject) ListProtos() (map[string]string, error) {
+	if o.Show == nil {
+		return nil, errors.New("Prototyping not supported outside shows.")
+	}
+	var protoMap = map[string]string{}
+	if !o.FileInfo.IsDir {
+		o = o.Parent
+	}
+	for {
+		d := filepath.Join(o.Path, teflonDirName, protoDirName)
+		protoList, err := ioutil.ReadDir(d)
+		if err != nil {
+			if os.IsNotExist(err) {
+				o = o.Parent
+				continue
+			}
+			return nil, err
+		}
+		for _, p := range protoList {
+			if _, ok := protoMap[p.Name()]; !ok {
+				saProto, _ := ShowAbs(filepath.Join(d, p.Name()))
+				protoMap[p.Name()] = saProto
+			}
+		}
+		if o.ShowRoot {
+			return protoMap, nil
+		}
+		o = o.Parent
+	}
+}
+
+// FindProto finds prototype by it's exact name in the context of object 'o'.
 func (p *TeflonObject) FindProto(proto string) (string, error) {
 	for {
 		// Create candidate.

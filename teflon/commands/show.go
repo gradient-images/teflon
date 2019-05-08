@@ -30,7 +30,7 @@ var showCmd = &cobra.Command{
 	Use:   "show [<target>]",
 	Args:  cobra.MaximumNArgs(1),
 	Run:   Show,
-	Short: "Manipulates show objects.",
+	Short: "Prints the show root the target belongs to.",
 	Long: `Without any subcommand 'teflon show' prints the absolute path of the show the target
 belongs to. If target is omitted, it defaults to the current directory.`,
 }

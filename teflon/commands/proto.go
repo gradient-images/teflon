@@ -22,20 +22,29 @@ import (
 )
 
 var protoCmd = &cobra.Command{
-	Use:   "proto",
+	Use:   "proto [<targets>]",
 	Short: "Manages prototype information",
 	Long: `'teflon proto' prints the protoype information belonging to its targets. If no
-<target> is specified it will run for '.'. As a side effect the metadata access the
-command creates the meta files if they are not already exist or refreshes
-them if they are not up-to-date.`,
-	Run: protoRun,
+<target> is specified it will run for '.' .`,
+	Run: Proto,
+}
+
+var protoListCmd = &cobra.Command{
+	Use:   "list [<target>]",
+	Args:  cobra.MaximumNArgs(1),
+	Short: "List available prototypes in the given target.",
+	Long: `'teflon proto list' prints all the available prototypes at the target's
+location. If no <target> is specified it will run for '.' .`,
+	Run: ProtoList,
 }
 
 func init() {
+	protoCmd.AddCommand(protoListCmd)
 	rootCmd.AddCommand(protoCmd)
 }
 
-func protoRun(cmd *cobra.Command, args []string) {
+// Proto (`teflon proto`) prints the prototype the target belongs to.
+func Proto(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		args = append(args, ".")
 	}
@@ -47,5 +56,24 @@ func protoRun(cmd *cobra.Command, args []string) {
 		if o.Proto != "" {
 			fmt.Println(o.Proto)
 		}
+	}
+}
+
+// ProtoList (`teflon proto list`) prints the available prototypes at the target's
+// location.
+func ProtoList(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		args = append(args, ".")
+	}
+	o, err := teflon.NewTeflonObject(args[0])
+	if err != nil {
+		log.Fatalln("Couldn't create object:", err)
+	}
+	protoMap, err := o.ListProtos()
+	if err != nil {
+		log.Fatalln("Couldn't assemble proto list.", err)
+	}
+	for k, v := range protoMap {
+		fmt.Printf("%s: %s\n", k, v)
 	}
 }

@@ -21,7 +21,7 @@ message FileInfo {
   int64 Size = 2;
   uint32 Mode = 3;
   google.protobuf.Timestamp ModTime = 4;
-  bool IsDir =5;
+  bool IsDir = 5;
 }
 
 message PersistentMeta {
