@@ -20,20 +20,9 @@
 // the field they are getting, without the 'Get' prefix, so look for them for
 // information. Also note that the source is not polluted.
 //
-// Glossary
+// Please see the glossary (https://github.com/gradient-images/teflon/wiki/Glossary)
+// for the exact definition of terms used throughout the source code.
 //
-// "configuration directory": Configuration directory for the `teflon` command.
-// Teflon stores the show prototypes here.
-//
-// "teflon directory": Directory containing Teflon related information for the
-// current directory, like metadata and prototypes.
-//
-// "show": A self containing administrative structure.
-//
-// "target": A target is a filesystem path in Teflon's notation. The only
-// distinction is that if the target string starts with '//', that means that it
-// is "show-absolute", so the "//" points to the show root of the current
-// directory.
 package teflon
 
 import (

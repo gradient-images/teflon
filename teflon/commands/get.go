@@ -32,7 +32,7 @@ is specified it will run for '.'.`,
 }
 
 func init() {
-	getCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{},
+	getCmd.Flags().StringSliceVarP(&metaListFlag, "meta", "m", []string{},
 		"Comma separated list of metadata entry names.")
 	rootCmd.AddCommand(getCmd)
 }
@@ -50,7 +50,7 @@ func getRun(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalln("Couldnt marshal JSON:", err)
 		}
-		if len(DataList) == 0 {
+		if len(metaListFlag) == 0 {
 			fmt.Println(string(d))
 		} else {
 			var m map[string]interface{}
@@ -58,7 +58,7 @@ func getRun(cmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatalln("Couldn't marshal JSON into map:", err)
 			}
-			for _, v := range DataList {
+			for _, v := range metaListFlag {
 				fmt.Printf("%s: %v\n", v, m[v])
 			}
 		}

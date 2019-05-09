@@ -21,49 +21,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var protoCmd = &cobra.Command{
-	Use:   "proto [<targets>]",
-	Short: "Manages prototype information",
-	Long: `'teflon proto' prints the protoype information belonging to its targets. If no
+var listCmd = &cobra.Command{
+	Use:   "list [<targets>]",
+	Short: "Lists information about teflon objects",
+	Long: `'teflon list' prints various kind of information about Teflon objects. If no
 <target> is specified it will run for '.' .`,
-	Run: Proto,
-}
-
-var protoListCmd = &cobra.Command{
-	Use:   "list [<target>]",
-	Args:  cobra.MaximumNArgs(1),
-	Short: "List available prototypes in the given target.",
-	Long: `'teflon proto list' prints all the available prototypes at the target's
-location. If no <target> is specified it will run for '.' .`,
-	Run: ProtoList,
+	Run: List,
 }
 
 func init() {
-	protoCmd.AddCommand(protoListCmd)
-	rootCmd.AddCommand(protoCmd)
+	listCmd.Flags().BoolVarP(&protoFlag, "proto", "P", false, "Lists available protos in the context of target.")
+	rootCmd.AddCommand(listCmd)
 }
 
-// Proto (`teflon proto`) prints the prototype the target belongs to.
-func Proto(cmd *cobra.Command, args []string) {
+// List (`teflon list`) lists various information about objects.
+func List(cmd *cobra.Command, args []string) {
+	// Set default target if none is given.
 	if len(args) == 0 {
 		args = append(args, ".")
 	}
-	for _, target := range args {
-		o, err := teflon.NewTeflonObject(target)
-		if err != nil {
-			log.Fatalln("Couldn't create object:", err)
-		}
-		if o.Proto != "" {
-			fmt.Println(o.Proto)
-		}
+
+	// If '-p' flag is set call listProtos.
+	if protoFlag {
+		listProtos(cmd, args)
+		return
 	}
+	log.Println("DEBUG: Only proto listing is implemented, doing nothing.")
 }
 
-// ProtoList (`teflon proto list`) prints the available prototypes at the target's
-// location.
-func ProtoList(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		args = append(args, ".")
+// listProtos (`teflon list -p`) prints the available prototypes in the target's
+// context.
+func listProtos(cmd *cobra.Command, args []string) {
+	if len(args) > 1 {
+		log.Fatalln("ABORT: Only one target allowed for proto listing.")
 	}
 	o, err := teflon.NewTeflonObject(args[0])
 	if err != nil {

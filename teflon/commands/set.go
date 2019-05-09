@@ -33,8 +33,8 @@ the key will be deleted.`,
 }
 
 func init() {
-	setCmd.Flags().StringSliceVarP(&DataList, "data", "d", []string{},
-		"Data entry in the form of 'key:value' pairs")
+	setCmd.Flags().StringSliceVarP(&metaListFlag, "meta", "m", []string{},
+		"Metadata entry in the form of 'key:value' pairs")
 	rootCmd.AddCommand(setCmd)
 }
 
@@ -51,7 +51,7 @@ func Set(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalln("ABORT: Couldn't create object:", err)
 		}
-		for _, data := range DataList {
+		for _, data := range metaListFlag {
 			s := strings.SplitN(data, ":", 2)
 			if len(s) < 2 {
 				log.Fatalln("ABORT: Malformed metadata:", data)

@@ -13,4 +13,8 @@
 
 package commands
 
-var DataList []string
+var metaListFlag []string     // '--meta' or '-m'
+var protoFlag bool            // '--proto' or '-P'
+var showFlag bool             // '--show' or '-S'
+// var userFlag bool
+// var deviceFlag bool

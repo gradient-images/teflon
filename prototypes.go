@@ -22,28 +22,40 @@ import (
 	"strings"
 )
 
+// ProtoPath converts file-system paths to proto special object paths. The
+// implementation is ugly as hell, depends on standard lib side effects and won't
+// work on Windows due  to the different file separator character.
+func ProtoPath(fspath string) string {
+	saPath := ShowAbs(fspath)
+	dir, name := filepath.Split(saPath)
+	dir = strings.TrimSuffix(dir, filepath.Join(teflonDirName, protoDirName) + "/")
+	return "/" + filepath.Join(dir, name)
+}
+
 // ListProtos lists all prototypes seen from the context of the object.
 func (o *TeflonObject) ListProtos() (map[string]string, error) {
 	if o.Show == nil {
 		return nil, errors.New("Prototyping not supported outside shows.")
 	}
+	// Init empty map for proto list.
 	var protoMap = map[string]string{}
+
+	// If o is a file switch it to it's parent object.
 	if !o.FileInfo.IsDir {
 		o = o.Parent
 	}
+
+	// Traverse up to show root looking for protos.
 	for {
 		d := filepath.Join(o.Path, teflonDirName, protoDirName)
 		protoList, err := ioutil.ReadDir(d)
-		if err != nil {
-			if os.IsNotExist(err) {
-				o = o.Parent
-				continue
-			}
+		if err != nil && !os.IsNotExist(err) {
 			return nil, err
-		}
-		for _, p := range protoList {
-			if _, ok := protoMap[p.Name()]; !ok {
-				protoMap[p.Name()] = ShowAbs(filepath.Join(d, p.Name()))
+		} else {
+			for _, p := range protoList {
+				if _, ok := protoMap[p.Name()]; !ok {
+					protoMap[p.Name()] = ProtoPath(filepath.Join(d, p.Name()))
+				}
 			}
 		}
 		if o.ShowRoot {
@@ -121,7 +133,7 @@ func (o *TeflonObject) FindProtoForTarget(name string) (string, error) {
 // prototype's instance list to include the object.
 func (o *TeflonObject) SetProto(proto string) error {
 	// Convert proto and object path to show-absolute notation.
-	saProto := ShowAbs(proto)
+	saProto := ProtoPath(proto)
 	saTarget := ShowAbs(o.Path)
 
 	// Remove old proto from old proto's instance list.
