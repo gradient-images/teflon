@@ -21,21 +21,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listCmd = &cobra.Command{
-	Use:   "list [<targets>]",
-	Short: "Lists information about teflon objects",
-	Long: `'teflon list' prints various kind of information about Teflon objects. If no
+var showCmd = &cobra.Command{
+	Use:   "show [<targets>]",
+	Short: "Shows information about teflon objects",
+	Long: `'teflon show' prints various kind of information about Teflon objects. If no
 <target> is specified it will run for '.' .`,
-	Run: List,
+	Run: Show,
 }
 
 func init() {
-	listCmd.Flags().BoolVarP(&protoFlag, "proto", "P", false, "Lists available protos in the context of target.")
-	rootCmd.AddCommand(listCmd)
+	showCmd.Flags().BoolVarP(&protoFlag, "proto", "P", false, "Lists available protos in the context of target.")
+	rootCmd.AddCommand(showCmd)
 }
 
 // List (`teflon list`) lists various information about objects.
-func List(cmd *cobra.Command, args []string) {
+func Show(cmd *cobra.Command, args []string) {
 	// Set default target if none is given.
 	if len(args) == 0 {
 		args = append(args, ".")
@@ -43,7 +43,7 @@ func List(cmd *cobra.Command, args []string) {
 
 	// If '-p' flag is set call listProtos.
 	if protoFlag {
-		listProtos(cmd, args)
+		showProtos(cmd, args)
 		return
 	}
 	log.Println("DEBUG: Only proto listing is implemented, doing nothing.")
@@ -51,7 +51,7 @@ func List(cmd *cobra.Command, args []string) {
 
 // listProtos (`teflon list -p`) prints the available prototypes in the target's
 // context.
-func listProtos(cmd *cobra.Command, args []string) {
+func showProtos(cmd *cobra.Command, args []string) {
 	if len(args) > 1 {
 		log.Fatalln("ABORT: Only one target allowed for proto listing.")
 	}
