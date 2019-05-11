@@ -33,11 +33,13 @@ creates a new object based on the one it finds matching the requested type. If t
 	Run: New,
 }
 
-var forceProtoFlag string
+var newForceProtoFlag string
 
 func init() {
-	newCmd.Flags().StringVarP(&forceProtoFlag, "force-proto", "p", "", "Prototype to use. If '-S' is set, it defaults to 'Default'.")
-	newCmd.Flags().BoolVarP(&showFlag, "show", "S", false, "Create a show.")
+	newCmd.Flags().StringVarP(&newForceProtoFlag, "force-proto", "p", "",
+		"Prototype to use. If '-S' is set, it defaults to 'Default'.",
+	)
+	newCmd.Flags().BoolVarP(&showFlag, "show", "S", false, "Create new show.")
 	rootCmd.AddCommand(newCmd)
 }
 
@@ -68,13 +70,13 @@ func New(cmd *cobra.Command, args []string) {
 
 		// Check if explicit prototype is given then find appropriate proto.
 		var proto string
-		if forceProtoFlag == "" {
+		if newForceProtoFlag == "" {
 			proto, err = parent.FindProtoForTarget(targetName)
 			if err != nil {
 				log.Fatalln("ABORT: Can't find prototype:", err)
 			}
 		} else {
-			proto, err = parent.FindProto(forceProtoFlag)
+			proto, err = parent.FindProto(newForceProtoFlag)
 			if err != nil {
 				log.Fatalln("ABORT: Can't find appropriate prototype:", err)
 			}
@@ -120,17 +122,17 @@ func newShow(cmd *cobra.Command, targets []string) {
 		}
 
 		// Set default proto if not set.
-		if forceProtoFlag == "" {
-			forceProtoFlag = "Default"
+		if newForceProtoFlag == "" {
+			newForceProtoFlag = "Default"
 		}
 
-		proto := filepath.Join(teflon.TeflonConf, teflon.ShowProtoDirName, forceProtoFlag)
+		proto := filepath.Join(teflon.TeflonConf, teflon.ShowProtoDirName, newForceProtoFlag)
 
 		err = copy.Copy(proto, fspath)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Printf("SUCCESS: Created new show: %s (%s)", fspath, forceProtoFlag)
+		log.Printf("SUCCESS: Created new show: %s (%s)", fspath, newForceProtoFlag)
 
 		o, err := teflon.NewTeflonObject(fspath)
 		if err != nil {

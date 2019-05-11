@@ -66,7 +66,21 @@ func (o *TeflonObject) ListProtos() (map[string]string, error) {
 }
 
 // FindProto finds prototype by it's exact name in the context of object 'o'.
+//
+// BUG: The precedence is not right now. The correct implementation would look for
+// name
 func (o *TeflonObject) FindProto(proto string) (string, error) {
+	if strings.HasPrefix(proto, "//") {
+		log.Println("DEBUG: Absolute proto name.")
+		dir, name := filepath.Split(proto)
+		fspath := filepath.Join(o.Show.Path, dir, teflonDirName, protoDirName, name)
+		log.Println("DEBUG: fspath:", fspath)
+		if Exist(fspath) {
+			return fspath, nil
+		}
+		return "", errors.New("Couldn't find proto: " + proto)
+	}
+	// Looking for protos always starts from the parent of the target.
 	dir, proto := filepath.Split(proto)
 	if dir != "" {
 		var err error
@@ -75,12 +89,13 @@ func (o *TeflonObject) FindProto(proto string) (string, error) {
 			return "", err
 		}
 	}
+	// Returns the first appropriate.
 	for {
 		// Create candidate.
-		c := filepath.Join(o.Path, teflonDirName, protoDirName, proto)
-		// If proto exists.
-		if Exist(c) {
-			return c, nil
+		fspath := filepath.Join(o.Path, teflonDirName, protoDirName, proto)
+		// If proto is found.
+		if Exist(fspath) {
+			return fspath, nil
 		}
 		// If reached show root.
 		if o.ShowRoot {
