@@ -53,7 +53,7 @@ func New(cmd *cobra.Command, args []string) {
 
 	// Create regular objects.
 	for _, target := range args {
-		fspath, err := teflon.FSPath(target)
+		fspath, err := teflon.Path(target)
 		if err != nil {
 			log.Fatalln("ABORT: Malformed target:", err)
 		}
@@ -112,7 +112,7 @@ func New(cmd *cobra.Command, args []string) {
 // `teflon.TeflonConf`. The arguments are targets.
 func newShow(cmd *cobra.Command, targets []string) {
 	for _, target := range targets {
-		fspath, err := teflon.FSPath(target)
+		fspath, err := teflon.Path(target)
 		if err != nil {
 			log.Fatalln(err)
 		}

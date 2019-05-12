@@ -39,7 +39,7 @@ func Exist(fspath string) bool {
 }
 
 // Converts a target to a file-sytem absolute path.
-func FSPath(target string) (string, error) {
+func Path(target string) (string, error) {
 
 	// Checks if target is show absolute.
 	if strings.HasPrefix(target, "//") {

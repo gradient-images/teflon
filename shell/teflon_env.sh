@@ -1,0 +1,6 @@
+alias t="teflon"
+alias tsh="teflon show"
+alias tg="teflon get"
+alias ts="teflon set"
+alias tn="teflon new"
+alias tc="teflon conf"

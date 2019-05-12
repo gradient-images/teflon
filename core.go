@@ -95,7 +95,7 @@ func (o *TeflonObject) GetPath() string {
 // to find the show root of the target. This is done recursively by creating all
 // the parent objects until and including the show root. This means that not only
 // the created object is fully initialized but there will be a complete chain of
-// object leading from the target to the show root.
+// objects leading from the target to the show root.
 //
 // If the target is show-absolute then the system first has to find the show root
 // from the current directory to get the file-system path of the target. This means
@@ -103,7 +103,7 @@ func (o *TeflonObject) GetPath() string {
 func NewTeflonObject(target string) (*TeflonObject, error) {
 
 	// Convert target to file-system path
-	fspath, err := FSPath(target)
+	fspath, err := Path(target)
 	if err != nil {
 		return nil, err
 	}

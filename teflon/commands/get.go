@@ -28,7 +28,7 @@ var getCmd = &cobra.Command{
 	Short: "Reads Teflon metadata",
 	Long: `'teflon get' prints the metadata belonging to the targets.  If no <target>
 is specified it will run for '.'.`,
-	Run: getRun,
+	Run: Get,
 }
 
 func init() {
@@ -37,10 +37,12 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 }
 
-func getRun(cmd *cobra.Command, args []string) {
+func Get(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		args = append(args, ".")
 	}
+
+	// Cycle through all args as Targets.
 	for _, target := range args {
 		o, err := teflon.NewTeflonObject(target)
 		if err != nil {
