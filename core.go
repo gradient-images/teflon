@@ -30,7 +30,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -84,26 +83,6 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(m)
 }
-
-// Marshaling JSON the same way with all lowercase for case insensitive lookup.
-func (o TeflonObject) MarshalLowerKeyJSON() ([]byte, error) {
-	m := map[string]interface{}{
-		"show":      o.Show.GetPath(),
-		"path":      o.Path,
-		"parent":    o.Parent.GetPath(),
-		"fileinfo":  o.FileInfo,
-		"showroot":  o.ShowRoot,
-		"proto":     o.Proto,
-		"instances": o.Instances,
-	}
-
-	for k, v := range o.UserData {
-		m[strings.ToLower(k)] = v
-	}
-
-	return json.Marshal(m)
-}
-
 
 // Helper function to get empty string for nil objects during JSON marshaling.
 func (o *TeflonObject) GetPath() string {
