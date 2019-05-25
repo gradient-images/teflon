@@ -17,8 +17,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gradient-images/teflon"
+	"github.com/gradient-images/teflon/expr"
 
 	"github.com/spf13/cobra"
 )
@@ -38,6 +40,7 @@ func init() {
 }
 
 func Get(cmd *cobra.Command, args []string) {
+	// Set default argument if no arguments given.
 	if len(args) == 0 {
 		args = append(args, ".")
 	}
@@ -48,21 +51,88 @@ func Get(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalln("Couldn't init object:", err)
 		}
-		d, err := json.MarshalIndent(&o, "", "  ")
+
+		// Create textual representation for display and unmarshal
+		dj, err := json.MarshalIndent(&o, "", "  ")
 		if err != nil {
-			log.Fatalln("Couldnt marshal JSON:", err)
+			log.Fatalln("Couldnt marshal meta JSON:", err)
 		}
+
+		// Print the whole meta if there was no selected meta
 		if len(metaListFlag) == 0 {
-			fmt.Println(string(d))
-		} else {
-			var m map[string]interface{}
-			err = json.Unmarshal(d, &m)
+			fmt.Println(string(dj))
+			return
+		}
+
+		// Otherwise find selected meta
+		var m map[string]interface{}
+		err = json.Unmarshal(dj, &m)
+		if err != nil {
+			log.Fatalln("Couldn't marshal JSON into map:", err)
+		}
+
+		// Cycle through metaList, 'es' stands for expression string
+		for _, es := range metaListFlag {
+			ei, err := expr.Parse("", []byte(es))
 			if err != nil {
-				log.Fatalln("Couldn't marshal JSON into map:", err)
+				log.Fatalf("Couldn't parse expression: %s, %s", es, err)
 			}
-			for _, v := range metaListFlag {
-				fmt.Printf("%s: %v\n", v, m[v])
+
+			// Now we know that it's a slice of strings
+			e := ei.([]string)
+			log.Printf("Expr: %s\n", e)
+
+			// // Init vi for the first address, vi stands for value interface
+			// vi, ok := m[e[0]]
+			// if !ok {
+			// 	log.Fatalf("Couldn't find key in meta: %s", e[0])
+			// }
+
+			// Create value to descend into and interface object to hold the result
+			v := m
+
+			// Value to return
+			var val interface{}
+
+			// Display name
+			dn := ""
+
+			// Cycle through names in expression
+			for i, n := range e {
+				// vi, ok := v[n]
+				// if !ok {
+				// 	log.Fatalf("Couldn't find key in meta 1: %s", n)
+				// }
+				lm := map[string]string{}
+				for k := range v {
+					lm[strings.ToLower(k)] = k
+				}
+
+				var ok bool
+				val, ok = v[lm[strings.ToLower(n)]]
+				if !ok {
+					log.Fatalf("Couldn't find key in meta 3: %s", n)
+				}
+				dn = dn + lm[strings.ToLower(n)]
+
+				// If there is more name to come
+				if i < len(e)-1 {
+					switch val.(type) {
+					case map[string]interface{}:
+						// Convert interface to map of interfaces
+						v = val.(map[string]interface{})
+						dn = dn + "."
+					default:
+						log.Fatalf("Couldn't find key in meta 2: %s", n)
+					}
+				}
 			}
+			vs, err := json.MarshalIndent(&val, "", "  ")
+			fmt.Printf("%s: %v\n", dn, string(vs))
+			if err != nil {
+				log.Fatalln("Couldnt marshal result JSON:", err)
+			}
+
 		}
 	}
 }

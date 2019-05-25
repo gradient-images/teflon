@@ -1,0 +1,42 @@
+{
+package expr
+
+// func main() {
+//   if len(os.Args) != 2 {
+//     log.Fatal("Usage: calculator 'EXPR'")
+//   }
+//   got, err := ParseReader("", strings.NewReader(os.Args[1]))
+//   if err != nil {
+//     log.Fatal(err)
+//   }
+//   fmt.Printf("Result: %s  Type: %T\n", got[1], got)
+// }
+
+// Convert interface{} to []interface{}
+func Isl(v interface{}) []interface{} {
+    if v == nil {
+        return nil
+    }
+    return v.([]interface{})
+}
+
+}
+
+Ident
+  <- base:Name subs:('.' Name)* {
+	  strSl := []string{base.(string)}
+		isl := Isl(subs)
+		for _, v := range(isl){
+		  vIsl := Isl(v)
+			strSl = append(strSl, vIsl[1].(string))
+		}
+	  log.Printf("Base: %s, Subs: %s, strSl: %s", base, subs, strSl)
+	  return strSl, nil
+	}
+
+Name <- [\pL]+ {
+  log.Printf("Name: %s\n", c.text)
+  return string(c.text), nil
+}
+
+_ "whitespace" ⟵ [ \n\t\r]*

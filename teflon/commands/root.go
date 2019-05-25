@@ -27,9 +27,9 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "teflon",
 	Short: "Film and TV post-production automation framework",
-	Long: `Teflon is an automation framework that makes it possible
-to automate several aspects of the post-production process, like file
-transformations, file sharing and job distribution.`,
+	Long: `Teflon is an post-production framework for film, that makes it possible
+to automate several routine tasks, like file transformations, file sharing
+and job distribution.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

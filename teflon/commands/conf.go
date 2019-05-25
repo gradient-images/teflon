@@ -18,28 +18,30 @@ import (
 	"os"
 	"os/exec"
 	"log"
+	"path/filepath"
 
-	// "github.com/gradient-images/teflon"
+	"github.com/gradient-images/teflon"
 	"github.com/spf13/cobra"
 )
 
 var confCmd = &cobra.Command{
-	Use:   "conf [<targets>]",
-	Short: "Manages the teflon process' configuration",
-	Long: `'teflon conf' manages various aspects of configuration of the teflon process.`,
+	Use:   "conf [<conf_dir>]",
+	Short: "Manages the configuration of a teflon process.",
+	Long: `'teflon conf' manages various aspects of configuration of the teflon process.
+If no arguments are given it will default to '.teflonconf'`,
 	Run: Conf,
 }
 
 var (
 	confInitFlag bool
 	confForceFlag bool
-	confDirFlag string
 	confRepoFlag string
+	confEmptyFlag bool
 )
 
 func init() {
 	confCmd.Flags().BoolVarP(&confInitFlag, "init", "I", false, "Initializes a config dir.")
-	confCmd.Flags().StringVarP(&confDirFlag, "conf-dir", "c", ".teflonconf", "Configuration directory to work on.")
+	confCmd.Flags().BoolVarP(&confEmptyFlag, "empty", "E", false, "Makes '-I' to create an empty config dir.")
 	confCmd.Flags().StringVarP(&confRepoFlag, "repository", "r",
 			"https://github.com/gradient-images/teflon-reference-config.git",
 			"Configuration directory to work on.",
@@ -47,9 +49,28 @@ func init() {
 	rootCmd.AddCommand(confCmd)
 }
 
-// List (`teflon list`) lists various information about objects.
+// List (`teflon conf`) manipulates the config dir.
 func Conf(cmd *cobra.Command, args []string) {
+	// Set default argument if no arguments given.
+	if len(args) == 0 {
+		args = append(args, ".teflonconf")
+	}
+
+	// Only one config dir can be manipulated right now.
+	if len(args) > 1 {
+		log.Fatalln("ABORT: Only one conf dir path can be given. Ask for more if seems useful! :)")
+	}
+
+	// Initializing a new config dir.
 	if confInitFlag {
+		if confEmptyFlag {
+			err := os.MkdirAll(filepath.Join(args[0], teflon.ShowProtoDirName, "Default"), os.FileMode(0755))
+			if err != nil {
+				log.Fatalln("ABORT: Couldn't create empty config dir.")
+			}
+			log.Println("SUCCESS: Created empty conf dir:", args[0])
+			os.Exit(0)
+		}
 		InitConf(cmd, args)
 		os.Exit(0)
 	}
@@ -57,7 +78,7 @@ func Conf(cmd *cobra.Command, args []string) {
 
 func InitConf(cmd *cobra.Command, args []string) {
 	log.Println("DEBUG: Initializing configuration directory.")
-	task := exec.Command("git", "clone", confRepoFlag, confDirFlag)
+	task := exec.Command("git", "clone", confRepoFlag, args[0])
 	err := task.Run()
 	if err != nil {
 		log.Fatalln("Git returned with error code.", err)
