@@ -1,17 +1,6 @@
 {
 package expr
 
-// func main() {
-//   if len(os.Args) != 2 {
-//     log.Fatal("Usage: calculator 'EXPR'")
-//   }
-//   got, err := ParseReader("", strings.NewReader(os.Args[1]))
-//   if err != nil {
-//     log.Fatal(err)
-//   }
-//   fmt.Printf("Result: %s  Type: %T\n", got[1], got)
-// }
-
 // Convert interface{} to []interface{}
 func Isl(v interface{}) []interface{} {
     if v == nil {
@@ -26,9 +15,45 @@ Expr <- _ a:Additive EOF {
   return &ExprNode{MetaSelector: a.(ENode)}, nil
 }
 
-Additive <- first:Value '+' _ second:Additive {
-  return &AddNode{first: first.(ENode), second: second.(ENode)}, nil
-} / Value
+Additive <- first:Multiplicative rest:(_ AddOp _ Multiplicative)* _ {
+  n := first.(ENode)
+  restSl := Isl(rest)
+  for _, v := range restSl {
+    vsl := Isl(v)
+    op := vsl[1].(string)
+    nn := vsl[3].(ENode)
+    switch op{
+    case "+":
+      n = &AddNode{first: n, second: nn}
+    case "-":
+      n = &SubNode{first: n, second: nn}
+    }
+  }
+  return n, nil
+}
+
+Multiplicative <- first:Factor rest:(_ MulOp _ Factor)* _ {
+  n := first.(ENode)
+  restSl := Isl(rest)
+  for _, v := range restSl {
+    vsl := Isl(v)
+    op := vsl[1].(string)
+    nn := vsl[3].(ENode)
+    switch op{
+    case "*":
+      n = &MulNode{first: n, second: nn}
+    case "/":
+      n = &DivNode{first: n, second: nn}
+    }
+  }
+  return n, nil
+}
+
+Factor <- '(' additive:Additive ')' {
+    return additive, nil
+} / value:Value {
+    return value, nil
+}
 
 Value <- val:(Meta / Number) _ {
   return val, nil
@@ -41,12 +66,10 @@ Meta <- base:Name subs:('.' Name)* {
 	  s := Isl(v)
 		m.NameList = append(m.NameList, s[1].(string))
 	}
-  log.Printf("DEBUG: Base: %s, Subs: %s, strSl: %s", base, subs, m)
   return m, nil
 }
 
 Name <- [\pL]+ {
-  log.Printf("DEBUG: Name: %s\n", c.text)
   return string(c.text), nil
 }
 
@@ -55,6 +78,14 @@ Number ← '-'? Integer ( '.' DecimalDigit+ )? Exponent? {
     // strconv.
     f, err := strconv.ParseFloat(string(c.text), 64)
     return &NumberNode{Value: f}, err
+}
+
+AddOp <- ( '+' / '-' ) {
+    return string(c.text), nil
+}
+
+MulOp <- ( '*' / '/' ) {
+    return string(c.text), nil
 }
 
 Integer ← '0' / NonZeroDecimalDigit DecimalDigit*
