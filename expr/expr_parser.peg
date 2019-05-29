@@ -22,8 +22,16 @@ func Isl(v interface{}) []interface{} {
 
 }
 
-Expr <- _ n:(Meta / Number) EOF {
-  return &ExprNode{MetaSelector: n.(ENode)}, nil
+Expr <- _ a:Additive EOF {
+  return &ExprNode{MetaSelector: a.(ENode)}, nil
+}
+
+Additive <- first:Value '+' _ second:Additive {
+  return &AddNode{first: first.(ENode), second: second.(ENode)}, nil
+} / Value
+
+Value <- val:(Meta / Number) _ {
+  return val, nil
 }
 
 Meta <- base:Name subs:('.' Name)* {
