@@ -46,7 +46,7 @@ Number ← '-'? Integer ( '.' DecimalDigit+ )? Exponent? {
     // JSON numbers have the same syntax as Go's, and are parseable using
     // strconv.
     f, err := strconv.ParseFloat(string(c.text), 64)
-    return &NumberNode{Value: meta.UserValue_N{f}}, err
+    return &NumberNode{Value: f}, err
 }
 
 Integer ← '0' / NonZeroDecimalDigit DecimalDigit*

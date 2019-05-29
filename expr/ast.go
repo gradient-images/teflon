@@ -21,7 +21,7 @@ import (
   "errors"
   "log"
 
-  "github.com/gradient-images/teflon/meta"
+  // "github.com/gradient-images/teflon/meta"
 )
 
 
@@ -50,7 +50,7 @@ func (e *Expr) Parse() error {
   return nil
 }
 
-func (e *Expr) Eval(c *Context) (*meta.UserValue, error) {
+func (e *Expr) Eval(c *Context) (interface{}, error) {
   return e.ast.Eval(c)
 }
 
@@ -65,7 +65,7 @@ func (e *Expr) String() string {
 // do, while the object selector part is evaluated top down as traditional globbing
 // does.
 type ENode interface {
-  Eval(*Context) (*meta.UserValue, error)
+  Eval(*Context) (interface{}, error)
 }
 
 
@@ -77,12 +77,12 @@ type ExprNode struct {
 
 // N represents a number literal
 type NumberNode struct {
-  Value meta.UserValue_N
+  Value float64
 }
 
 // S represents a string literal
 type StringNode struct {
-  Value meta.UserValue_S
+  Value string
 }
 
 // Identifier is a slice of strings that are used to search for the name in the
@@ -97,19 +97,19 @@ type AddNode struct {
   second ENode
 }
 
-func (Expr *ExprNode) Eval(c *Context) (*meta.UserValue, error) {
+func (Expr *ExprNode) Eval(c *Context) (interface{}, error) {
   return Expr.MetaSelector.Eval(c)
 }
 
-func (N *NumberNode) Eval(c *Context) (*meta.UserValue, error) {
-  return &meta.UserValue{Value: &N.Value}, nil
+func (N *NumberNode) Eval(c *Context) (interface{}, error) {
+  return N.Value, nil
 }
 
-func (S *StringNode) Eval(c *Context) (*meta.UserValue, error) {
-  return &meta.UserValue{Value: &S.Value}, nil
+func (S *StringNode) Eval(c *Context) (interface{}, error) {
+  return S.Value, nil
 }
 
-func (M *MetaNode) Eval(c *Context) (*meta.UserValue, error) {
+func (M *MetaNode) Eval(c *Context) (interface{}, error) {
   var val interface{}
   v := c.IMap
   for i, n := range M.NameList {
@@ -138,40 +138,40 @@ func (M *MetaNode) Eval(c *Context) (*meta.UserValue, error) {
   }
 
   // Since values are coming from the context it's enogh to handle JSON UserValues
-  var uv *meta.UserValue
+  // var uv *meta.UserValue
   log.Println("DEBUG: val:", val)
-  switch v := val.(type) {
-  case float64:
-    uv = &meta.UserValue{Value: &meta.UserValue_N{v}}
-  case string:
-    uv = &meta.UserValue{Value: &meta.UserValue_S{v}}
-  default:
-    return nil, errors.New("Couldn't convert result to UserValue.")
-  }
-  return uv, nil
+  // switch v := val.(type) {
+  // case float64:
+  //   uv = &meta.UserValue{Value: &meta.UserValue_N{v}}
+  // case string:
+  //   uv = &meta.UserValue{Value: &meta.UserValue_S{v}}
+  // default:
+  //   return nil, errors.New("Couldn't convert result to UserValue.")
+  // }
+  return val, nil
 }
 
-func (a *AddNode) Eval(c *Context) (*meta.UserValue, error) {
+func (a *AddNode) Eval(c *Context) (interface{}, error) {
   log.Printf("DEBUG: Inside AddNode.Eval.")
-  fp, err := a.first.Eval(c)
+  fi, err := a.first.Eval(c)
   if err != nil {
     return nil, err
   }
-  f := *fp
+  // f := *fp
 
-  sp, err := a.second.Eval(c)
+  si, err := a.second.Eval(c)
   if err != nil {
     return nil, err
   }
-  s := *sp
+  // s := *sp
 
-  var v *meta.UserValue
+  var v interface{}
 
-  switch fv := f.Value.(type) {
-  case *meta.UserValue_N:
-    switch sv := s.Value.(type) {
-    case *meta.UserValue_N:
-      v = &meta.UserValue{Value: &meta.UserValue_N{fv.N + sv.N}}
+  switch f := fi.(type) {
+  case float64:
+    switch s := si.(type) {
+    case float64:
+      v = f + s
     }
   }
   return v, nil
@@ -180,5 +180,5 @@ func (a *AddNode) Eval(c *Context) (*meta.UserValue, error) {
 
 // Number needs a string conversion for string concatenation
 func (N NumberNode) String() string {
-  return strconv.FormatFloat(N.Value.N, 'G', -1, 64)
+  return strconv.FormatFloat(N.Value, 'G', -1, 64)
 }

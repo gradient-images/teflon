@@ -16,8 +16,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/gradient-images/teflon/meta"
 )
 
 // func main() {
@@ -193,26 +191,26 @@ var g = &grammar{
 		},
 		{
 			name: "Integer",
-			pos:  position{line: 52, col: 1, offset: 1170},
+			pos:  position{line: 52, col: 1, offset: 1152},
 			expr: &choiceExpr{
-				pos: position{line: 52, col: 11, offset: 1182},
+				pos: position{line: 52, col: 11, offset: 1164},
 				alternatives: []interface{}{
 					&litMatcher{
-						pos:        position{line: 52, col: 11, offset: 1182},
+						pos:        position{line: 52, col: 11, offset: 1164},
 						val:        "0",
 						ignoreCase: false,
 					},
 					&seqExpr{
-						pos: position{line: 52, col: 17, offset: 1188},
+						pos: position{line: 52, col: 17, offset: 1170},
 						exprs: []interface{}{
 							&ruleRefExpr{
-								pos:  position{line: 52, col: 17, offset: 1188},
+								pos:  position{line: 52, col: 17, offset: 1170},
 								name: "NonZeroDecimalDigit",
 							},
 							&zeroOrMoreExpr{
-								pos: position{line: 52, col: 37, offset: 1208},
+								pos: position{line: 52, col: 37, offset: 1190},
 								expr: &ruleRefExpr{
-									pos:  position{line: 52, col: 37, offset: 1208},
+									pos:  position{line: 52, col: 37, offset: 1190},
 									name: "DecimalDigit",
 								},
 							},
@@ -223,19 +221,19 @@ var g = &grammar{
 		},
 		{
 			name: "Exponent",
-			pos:  position{line: 54, col: 1, offset: 1223},
+			pos:  position{line: 54, col: 1, offset: 1205},
 			expr: &seqExpr{
-				pos: position{line: 54, col: 12, offset: 1236},
+				pos: position{line: 54, col: 12, offset: 1218},
 				exprs: []interface{}{
 					&litMatcher{
-						pos:        position{line: 54, col: 12, offset: 1236},
+						pos:        position{line: 54, col: 12, offset: 1218},
 						val:        "e",
 						ignoreCase: true,
 					},
 					&zeroOrOneExpr{
-						pos: position{line: 54, col: 17, offset: 1241},
+						pos: position{line: 54, col: 17, offset: 1223},
 						expr: &charClassMatcher{
-							pos:        position{line: 54, col: 17, offset: 1241},
+							pos:        position{line: 54, col: 17, offset: 1223},
 							val:        "[+-]",
 							chars:      []rune{'+', '-'},
 							ignoreCase: false,
@@ -243,9 +241,9 @@ var g = &grammar{
 						},
 					},
 					&oneOrMoreExpr{
-						pos: position{line: 54, col: 23, offset: 1247},
+						pos: position{line: 54, col: 23, offset: 1229},
 						expr: &ruleRefExpr{
-							pos:  position{line: 54, col: 23, offset: 1247},
+							pos:  position{line: 54, col: 23, offset: 1229},
 							name: "DecimalDigit",
 						},
 					},
@@ -254,9 +252,9 @@ var g = &grammar{
 		},
 		{
 			name: "DecimalDigit",
-			pos:  position{line: 56, col: 1, offset: 1262},
+			pos:  position{line: 56, col: 1, offset: 1244},
 			expr: &charClassMatcher{
-				pos:        position{line: 56, col: 16, offset: 1279},
+				pos:        position{line: 56, col: 16, offset: 1261},
 				val:        "[0-9]",
 				ranges:     []rune{'0', '9'},
 				ignoreCase: false,
@@ -265,9 +263,9 @@ var g = &grammar{
 		},
 		{
 			name: "NonZeroDecimalDigit",
-			pos:  position{line: 58, col: 1, offset: 1286},
+			pos:  position{line: 58, col: 1, offset: 1268},
 			expr: &charClassMatcher{
-				pos:        position{line: 58, col: 23, offset: 1310},
+				pos:        position{line: 58, col: 23, offset: 1292},
 				val:        "[1-9]",
 				ranges:     []rune{'1', '9'},
 				ignoreCase: false,
@@ -277,11 +275,11 @@ var g = &grammar{
 		{
 			name:        "_",
 			displayName: "\"whitespace\"",
-			pos:         position{line: 60, col: 1, offset: 1317},
+			pos:         position{line: 60, col: 1, offset: 1299},
 			expr: &zeroOrMoreExpr{
-				pos: position{line: 60, col: 18, offset: 1336},
+				pos: position{line: 60, col: 18, offset: 1318},
 				expr: &charClassMatcher{
-					pos:        position{line: 60, col: 18, offset: 1336},
+					pos:        position{line: 60, col: 18, offset: 1318},
 					val:        "[ \\n\\t\\r]",
 					chars:      []rune{' ', '\n', '\t', '\r'},
 					ignoreCase: false,
@@ -291,11 +289,11 @@ var g = &grammar{
 		},
 		{
 			name: "EOF",
-			pos:  position{line: 62, col: 1, offset: 1348},
+			pos:  position{line: 62, col: 1, offset: 1330},
 			expr: &notExpr{
-				pos: position{line: 62, col: 8, offset: 1355},
+				pos: position{line: 62, col: 8, offset: 1337},
 				expr: &anyMatcher{
-					line: 62, col: 9, offset: 1356,
+					line: 62, col: 9, offset: 1338,
 				},
 			},
 		},
@@ -344,7 +342,7 @@ func (c *current) onNumber1() (interface{}, error) {
 	// JSON numbers have the same syntax as Go's, and are parseable using
 	// strconv.
 	f, err := strconv.ParseFloat(string(c.text), 64)
-	return &NumberNode{Value: meta.UserValue_N{f}}, err
+	return &NumberNode{Value: f}, err
 }
 
 func (p *parser) callonNumber1() (interface{}, error) {
