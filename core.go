@@ -31,6 +31,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gradient-images/teflon/expr"
+	"github.com/gradient-images/teflon/meta"
+
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 )
@@ -59,9 +62,9 @@ const (
 type TeflonObject struct {
 	Path     string
 	Show     *TeflonObject
-	FileInfo FileInfo
+	FileInfo meta.FileInfo
 	Parent   *TeflonObject
-	PersistentMeta
+	meta.PersistentMeta
 }
 
 // Marshaling JSON manually to avoid recursion. There is probably a more elegant
@@ -84,95 +87,23 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
-// Helper function to get empty string for nil objects during JSON marshaling.
-func (o *TeflonObject) GetPath() string {
-	if o != nil {
-		return o.Path
-	}
-	return ""
-}
-
-// NewTeflonObject creates a new initialized Teflon object in memory, that
-// represents a file-system object.
-//
-// Initialization is always complete. It is not allowed to have half-baked objects
-// in memory. Since it has to set the Show field to its correct value it first has
-// to find the show root of the target. This is done recursively by creating all
-// the parent objects until and including the show root. This means that not only
-// the created object is fully initialized but there will be a complete chain of
-// objects leading from the target to the show root.
-//
-// If the target is show-absolute then the system first has to find the show root
-// from the current directory to get the file-system path of the target. This means
-// that the end result is two initialized chains to the same show root.
-func NewTeflonObject(target string) (*TeflonObject, error) {
-
-	// Convert target to file-system path
-	fspath, err := Path(target)
+// GetContext returns the Context of the object. Currently it is implemented as a
+// marshal and unmarshal sequence to and from JSON. It is rather primitive and
+// uneffective (slow), but it has the benefits of being extremely simple to
+// implement and it forces us to be compliant with the JSON standard.
+func (o *TeflonObject) GetContext() (*expr.Context, error) {
+	// Marshal object to JSON
+	cj, err := json.Marshal(o)
 	if err != nil {
 		return nil, err
 	}
-
-	// Checks if it's in Objects
-	o, ok := Objects[fspath]
-	if ok {
-		return o, nil
-	} else {
-		// Create the uninitialized object
-		o = &TeflonObject{Path: fspath}
-	}
-
-	// Initialize metadata
-	stat, err := os.Stat(o.Path)
+	// UnMarshal JSON object to Context
+	var c expr.Context
+	err = json.Unmarshal(cj, &c.IMap)
 	if err != nil {
 		return nil, err
 	}
-	modtime, _ := ptypes.TimestampProto(stat.ModTime())
-	o.FileInfo = FileInfo{
-		Name:    stat.Name(),
-		Size:    stat.Size(),
-		Mode:    uint32(stat.Mode()),
-		ModTime: modtime,
-		IsDir:   stat.IsDir(),
-	}
-	m := o.MetaFile()
-
-	// Read meta file if exists
-	if _, err := os.Stat(m); !os.IsNotExist(err) {
-		in, err := ioutil.ReadFile(m)
-		if err != nil {
-			return nil, err
-		}
-		err = protobuf.Unmarshal(in, o)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Init UserData if not exists
-	if o.UserData == nil {
-		o.UserData = make(map[string]string)
-	}
-
-	// Check if it is show root
-	if o.ShowRoot {
-		o.Show = o
-	} else {
-		parent := filepath.Dir(o.Path)
-
-		// Check if reached file-system root
-		if parent != "/" {
-			p, err := NewTeflonObject(parent)
-			if err != nil {
-				return nil, err
-			}
-			o.Parent = p
-			o.Show = p.Show
-		}
-	}
-
-	Objects[fspath] = o
-	return o, nil
+	return &c, nil
 }
 
 // MetaFile returns the file path to the TeflonObject's meta file. In the case of a
@@ -224,4 +155,95 @@ func (o TeflonObject) createTeflonDir() error {
 		return err
 	}
 	return nil
+}
+
+// Helper function to get empty string for nil objects during JSON marshaling.
+func (o *TeflonObject) GetPath() string {
+	if o != nil {
+		return o.Path
+	}
+	return ""
+}
+
+// NewTeflonObject creates a new initialized Teflon object in memory, that
+// represents a file-system object.
+//
+// Initialization is always complete. It is not allowed to have half-baked objects
+// in memory. Since it has to set the Show field to its correct value it first has
+// to find the show root of the target. This is done recursively by creating all
+// the parent objects until and including the show root. This means that not only
+// the created object is fully initialized but there will be a complete chain of
+// objects leading from the target to the show root.
+//
+// If the target is show-absolute then the system first has to find the show root
+// from the current directory to get the file-system path of the target. This means
+// that the end result is two initialized chains to the same show root.
+func NewTeflonObject(target string) (*TeflonObject, error) {
+
+	// Convert target to file-system path
+	fspath, err := Path(target)
+	if err != nil {
+		return nil, err
+	}
+
+	// Checks if it's in Objects
+	o, ok := Objects[fspath]
+	if ok {
+		return o, nil
+	} else {
+		// Create the uninitialized object
+		o = &TeflonObject{Path: fspath}
+	}
+
+	// Initialize metadata
+	stat, err := os.Stat(o.Path)
+	if err != nil {
+		return nil, err
+	}
+	modtime, _ := ptypes.TimestampProto(stat.ModTime())
+	o.FileInfo = meta.FileInfo{
+		Name:    stat.Name(),
+		Size:    stat.Size(),
+		Mode:    uint32(stat.Mode()),
+		ModTime: modtime,
+		IsDir:   stat.IsDir(),
+	}
+	m := o.MetaFile()
+
+	// Read meta file if exists
+	if _, err := os.Stat(m); !os.IsNotExist(err) {
+		in, err := ioutil.ReadFile(m)
+		if err != nil {
+			return nil, err
+		}
+		err = protobuf.Unmarshal(in, o)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Init UserData if not exists
+	if o.UserData == nil {
+		o.UserData = make(map[string]string)
+	}
+
+	// Check if it is show root
+	if o.ShowRoot {
+		o.Show = o
+	} else {
+		parent := filepath.Dir(o.Path)
+
+		// Check if reached file-system root
+		if parent != "/" {
+			p, err := NewTeflonObject(parent)
+			if err != nil {
+				return nil, err
+			}
+			o.Parent = p
+			o.Show = p.Show
+		}
+	}
+
+	Objects[fspath] = o
+	return o, nil
 }

@@ -16,6 +16,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/gradient-images/teflon/meta"
 )
 
 // func main() {
@@ -40,37 +42,75 @@ func Isl(v interface{}) []interface{} {
 var g = &grammar{
 	rules: []*rule{
 		{
-			name: "Ident",
+			name: "Expr",
 			pos:  position{line: 25, col: 1, offset: 446},
 			expr: &actionExpr{
-				pos: position{line: 26, col: 6, offset: 457},
-				run: (*parser).callonIdent1,
+				pos: position{line: 25, col: 9, offset: 454},
+				run: (*parser).callonExpr1,
 				expr: &seqExpr{
-					pos: position{line: 26, col: 6, offset: 457},
+					pos: position{line: 25, col: 9, offset: 454},
+					exprs: []interface{}{
+						&ruleRefExpr{
+							pos:  position{line: 25, col: 9, offset: 454},
+							name: "_",
+						},
+						&labeledExpr{
+							pos:   position{line: 25, col: 11, offset: 456},
+							label: "n",
+							expr: &choiceExpr{
+								pos: position{line: 25, col: 14, offset: 459},
+								alternatives: []interface{}{
+									&ruleRefExpr{
+										pos:  position{line: 25, col: 14, offset: 459},
+										name: "Meta",
+									},
+									&ruleRefExpr{
+										pos:  position{line: 25, col: 21, offset: 466},
+										name: "Number",
+									},
+								},
+							},
+						},
+						&ruleRefExpr{
+							pos:  position{line: 25, col: 29, offset: 474},
+							name: "EOF",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Meta",
+			pos:  position{line: 29, col: 1, offset: 532},
+			expr: &actionExpr{
+				pos: position{line: 29, col: 9, offset: 540},
+				run: (*parser).callonMeta1,
+				expr: &seqExpr{
+					pos: position{line: 29, col: 9, offset: 540},
 					exprs: []interface{}{
 						&labeledExpr{
-							pos:   position{line: 26, col: 6, offset: 457},
+							pos:   position{line: 29, col: 9, offset: 540},
 							label: "base",
 							expr: &ruleRefExpr{
-								pos:  position{line: 26, col: 11, offset: 462},
+								pos:  position{line: 29, col: 14, offset: 545},
 								name: "Name",
 							},
 						},
 						&labeledExpr{
-							pos:   position{line: 26, col: 16, offset: 467},
+							pos:   position{line: 29, col: 19, offset: 550},
 							label: "subs",
 							expr: &zeroOrMoreExpr{
-								pos: position{line: 26, col: 21, offset: 472},
+								pos: position{line: 29, col: 24, offset: 555},
 								expr: &seqExpr{
-									pos: position{line: 26, col: 22, offset: 473},
+									pos: position{line: 29, col: 25, offset: 556},
 									exprs: []interface{}{
 										&litMatcher{
-											pos:        position{line: 26, col: 22, offset: 473},
+											pos:        position{line: 29, col: 25, offset: 556},
 											val:        ".",
 											ignoreCase: false,
 										},
 										&ruleRefExpr{
-											pos:  position{line: 26, col: 26, offset: 477},
+											pos:  position{line: 29, col: 29, offset: 560},
 											name: "Name",
 										},
 									},
@@ -83,14 +123,14 @@ var g = &grammar{
 		},
 		{
 			name: "Name",
-			pos:  position{line: 37, col: 1, offset: 724},
+			pos:  position{line: 40, col: 1, offset: 818},
 			expr: &actionExpr{
-				pos: position{line: 37, col: 9, offset: 732},
+				pos: position{line: 40, col: 9, offset: 826},
 				run: (*parser).callonName1,
 				expr: &oneOrMoreExpr{
-					pos: position{line: 37, col: 9, offset: 732},
+					pos: position{line: 40, col: 9, offset: 826},
 					expr: &charClassMatcher{
-						pos:        position{line: 37, col: 9, offset: 732},
+						pos:        position{line: 40, col: 9, offset: 826},
 						val:        "[\\pL]",
 						classes:    []*unicode.RangeTable{rangeTable("L")},
 						ignoreCase: false,
@@ -100,13 +140,148 @@ var g = &grammar{
 			},
 		},
 		{
+			name: "Number",
+			pos:  position{line: 45, col: 1, offset: 909},
+			expr: &actionExpr{
+				pos: position{line: 45, col: 10, offset: 920},
+				run: (*parser).callonNumber1,
+				expr: &seqExpr{
+					pos: position{line: 45, col: 10, offset: 920},
+					exprs: []interface{}{
+						&zeroOrOneExpr{
+							pos: position{line: 45, col: 10, offset: 920},
+							expr: &litMatcher{
+								pos:        position{line: 45, col: 10, offset: 920},
+								val:        "-",
+								ignoreCase: false,
+							},
+						},
+						&ruleRefExpr{
+							pos:  position{line: 45, col: 15, offset: 925},
+							name: "Integer",
+						},
+						&zeroOrOneExpr{
+							pos: position{line: 45, col: 23, offset: 933},
+							expr: &seqExpr{
+								pos: position{line: 45, col: 25, offset: 935},
+								exprs: []interface{}{
+									&litMatcher{
+										pos:        position{line: 45, col: 25, offset: 935},
+										val:        ".",
+										ignoreCase: false,
+									},
+									&oneOrMoreExpr{
+										pos: position{line: 45, col: 29, offset: 939},
+										expr: &ruleRefExpr{
+											pos:  position{line: 45, col: 29, offset: 939},
+											name: "DecimalDigit",
+										},
+									},
+								},
+							},
+						},
+						&zeroOrOneExpr{
+							pos: position{line: 45, col: 46, offset: 956},
+							expr: &ruleRefExpr{
+								pos:  position{line: 45, col: 46, offset: 956},
+								name: "Exponent",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Integer",
+			pos:  position{line: 52, col: 1, offset: 1170},
+			expr: &choiceExpr{
+				pos: position{line: 52, col: 11, offset: 1182},
+				alternatives: []interface{}{
+					&litMatcher{
+						pos:        position{line: 52, col: 11, offset: 1182},
+						val:        "0",
+						ignoreCase: false,
+					},
+					&seqExpr{
+						pos: position{line: 52, col: 17, offset: 1188},
+						exprs: []interface{}{
+							&ruleRefExpr{
+								pos:  position{line: 52, col: 17, offset: 1188},
+								name: "NonZeroDecimalDigit",
+							},
+							&zeroOrMoreExpr{
+								pos: position{line: 52, col: 37, offset: 1208},
+								expr: &ruleRefExpr{
+									pos:  position{line: 52, col: 37, offset: 1208},
+									name: "DecimalDigit",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Exponent",
+			pos:  position{line: 54, col: 1, offset: 1223},
+			expr: &seqExpr{
+				pos: position{line: 54, col: 12, offset: 1236},
+				exprs: []interface{}{
+					&litMatcher{
+						pos:        position{line: 54, col: 12, offset: 1236},
+						val:        "e",
+						ignoreCase: true,
+					},
+					&zeroOrOneExpr{
+						pos: position{line: 54, col: 17, offset: 1241},
+						expr: &charClassMatcher{
+							pos:        position{line: 54, col: 17, offset: 1241},
+							val:        "[+-]",
+							chars:      []rune{'+', '-'},
+							ignoreCase: false,
+							inverted:   false,
+						},
+					},
+					&oneOrMoreExpr{
+						pos: position{line: 54, col: 23, offset: 1247},
+						expr: &ruleRefExpr{
+							pos:  position{line: 54, col: 23, offset: 1247},
+							name: "DecimalDigit",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "DecimalDigit",
+			pos:  position{line: 56, col: 1, offset: 1262},
+			expr: &charClassMatcher{
+				pos:        position{line: 56, col: 16, offset: 1279},
+				val:        "[0-9]",
+				ranges:     []rune{'0', '9'},
+				ignoreCase: false,
+				inverted:   false,
+			},
+		},
+		{
+			name: "NonZeroDecimalDigit",
+			pos:  position{line: 58, col: 1, offset: 1286},
+			expr: &charClassMatcher{
+				pos:        position{line: 58, col: 23, offset: 1310},
+				val:        "[1-9]",
+				ranges:     []rune{'1', '9'},
+				ignoreCase: false,
+				inverted:   false,
+			},
+		},
+		{
 			name:        "_",
 			displayName: "\"whitespace\"",
-			pos:         position{line: 42, col: 1, offset: 808},
+			pos:         position{line: 60, col: 1, offset: 1317},
 			expr: &zeroOrMoreExpr{
-				pos: position{line: 42, col: 18, offset: 827},
+				pos: position{line: 60, col: 18, offset: 1336},
 				expr: &charClassMatcher{
-					pos:        position{line: 42, col: 18, offset: 827},
+					pos:        position{line: 60, col: 18, offset: 1336},
 					val:        "[ \\n\\t\\r]",
 					chars:      []rune{' ', '\n', '\t', '\r'},
 					ignoreCase: false,
@@ -114,29 +289,48 @@ var g = &grammar{
 				},
 			},
 		},
+		{
+			name: "EOF",
+			pos:  position{line: 62, col: 1, offset: 1348},
+			expr: &notExpr{
+				pos: position{line: 62, col: 8, offset: 1355},
+				expr: &anyMatcher{
+					line: 62, col: 9, offset: 1356,
+				},
+			},
+		},
 	},
 }
 
-func (c *current) onIdent1(base, subs interface{}) (interface{}, error) {
-	strSl := []string{base.(string)}
-	isl := Isl(subs)
-	for _, v := range isl {
-		vIsl := Isl(v)
-		strSl = append(strSl, vIsl[1].(string))
-	}
-	log.Printf("Base: %s, Subs: %s, strSl: %s", base, subs, strSl)
-	return strSl, nil
-
+func (c *current) onExpr1(n interface{}) (interface{}, error) {
+	return &ExprNode{MetaSelector: n.(ENode)}, nil
 }
 
-func (p *parser) callonIdent1() (interface{}, error) {
+func (p *parser) callonExpr1() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onIdent1(stack["base"], stack["subs"])
+	return p.cur.onExpr1(stack["n"])
+}
+
+func (c *current) onMeta1(base, subs interface{}) (interface{}, error) {
+	m := &MetaNode{NameList: []string{base.(string)}}
+	ssl := Isl(subs)
+	for _, v := range ssl {
+		s := Isl(v)
+		m.NameList = append(m.NameList, s[1].(string))
+	}
+	log.Printf("DEBUG: Base: %s, Subs: %s, strSl: %s", base, subs, m)
+	return m, nil
+}
+
+func (p *parser) callonMeta1() (interface{}, error) {
+	stack := p.vstack[len(p.vstack)-1]
+	_ = stack
+	return p.cur.onMeta1(stack["base"], stack["subs"])
 }
 
 func (c *current) onName1() (interface{}, error) {
-	log.Printf("Name: %s\n", c.text)
+	log.Printf("DEBUG: Name: %s\n", c.text)
 	return string(c.text), nil
 }
 
@@ -144,6 +338,19 @@ func (p *parser) callonName1() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
 	return p.cur.onName1()
+}
+
+func (c *current) onNumber1() (interface{}, error) {
+	// JSON numbers have the same syntax as Go's, and are parseable using
+	// strconv.
+	f, err := strconv.ParseFloat(string(c.text), 64)
+	return &NumberNode{Value: meta.UserValue_N{f}}, err
+}
+
+func (p *parser) callonNumber1() (interface{}, error) {
+	stack := p.vstack[len(p.vstack)-1]
+	_ = stack
+	return p.cur.onNumber1()
 }
 
 var (

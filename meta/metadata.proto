@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-package teflon;
+package meta;
 
 message WireObject {
   VolatileMeta Volatile = 1;
@@ -42,4 +42,22 @@ message Seq {
   string BaseName = 1;
   int32 First = 2;
   int32 Last = 3;
+}
+
+message UserArray {
+  repeated UserValue A = 1;
+}
+
+message UserObject {
+    map<string, UserValue> O = 1;
+}
+
+message UserValue {
+  oneof Value {
+    bool B = 1;
+    double N = 2;
+    string S = 3;
+    UserArray A = 4;
+    UserObject O = 5;
+  }
 }

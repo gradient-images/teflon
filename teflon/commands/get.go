@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/gradient-images/teflon"
 	"github.com/gradient-images/teflon/expr"
@@ -49,88 +48,83 @@ func Get(cmd *cobra.Command, args []string) {
 	for _, target := range args {
 		o, err := teflon.NewTeflonObject(target)
 		if err != nil {
-			log.Fatalln("Couldn't init object:", err)
-		}
-
-		// Create textual representation for display and unmarshal
-		dj, err := json.MarshalIndent(&o, "", "  ")
-		if err != nil {
-			log.Fatalln("Couldnt marshal meta JSON:", err)
+			log.Fatalln("FATAL: Couldn't init object:", err)
 		}
 
 		// Print the whole meta if there was no selected meta
 		if len(metaListFlag) == 0 {
+			dj, err := json.MarshalIndent(&o, "", "  ")
+			if err != nil {
+				log.Fatalln("FATAL: Couldn't marshal entire object to JSON:", err)
+			}
+
 			fmt.Println(string(dj))
 			return
 		}
 
-		// Otherwise find selected meta
-		var m map[string]interface{}
-		err = json.Unmarshal(dj, &m)
+		// Get the context for ident resolution.
+		c, err := o.GetContext()
 		if err != nil {
-			log.Fatalln("Couldn't marshal JSON into map:", err)
+			log.Fatalln("FATAL: Couldn't create context:", err)
 		}
 
 		// Cycle through metaList, 'es' stands for expression string
 		for _, es := range metaListFlag {
-			ei, err := expr.Parse("", []byte(es))
+			// Create and parse expression
+			e := expr.New(es)
+			err := e.Parse()
 			if err != nil {
-				log.Fatalf("Couldn't parse expression: %s, %s", es, err)
+				log.Fatalf("FATAL: Couldn't parse expression: %s, %s", es, err)
+			}
+			log.Printf("DEBUG: Expr: %s\n", e)
+
+			// Evaluate expression.
+			v, err := e.Eval(c)
+			if err != nil {
+				log.Fatalln("FATAL: Couldn't evaluate expression:", err)
 			}
 
-			// Now we know that it's a slice of strings
-			e := ei.([]string)
-			log.Printf("Expr: %s\n", e)
+			// Create display JSON.
+			dj, err := json.MarshalIndent(v, "", "  ")
 
-			// // Init vi for the first address, vi stands for value interface
-			// vi, ok := m[e[0]]
-			// if !ok {
-			// 	log.Fatalf("Couldn't find key in meta: %s", e[0])
+			fmt.Printf("%s: %s\n", e, dj)
+			if err != nil {
+				log.Fatalln("FATAL: Couldnt marshal result JSON:", err)
+
+			// // Init context
+			// v := m
+			//
+			// // Value to return and display name
+			// var val interface{}
+			// var dn string
+			//
+			// // Cycle through names in Identifier
+			// for i, n := range e {
+			// 	// Create lower map for case insensitive matching
+			// 	lm := map[string]string{}
+			// 	for k := range v {
+			// 		lm[strings.ToLower(k)] = k
+			// 	}
+			//
+			// 	val, ok := v[lm[strings.ToLower(n)]]
+			// 	if !ok {
+			// 		log.Fatalf("Couldn't find key in meta 3: %s", n)
+			// 	}
+			// 	dn = dn + lm[strings.ToLower(n)]
+			//
+			// 	// If there is more name to come
+			// 	if i < len(e)-1 {
+			// 		switch val.(type) {
+			// 		case map[string]interface{}:
+			// 			// Convert interface to map of interfaces
+			// 			v = val.(map[string]interface{})
+			// 			dn = dn + "."
+			// 		default:
+			// 			log.Fatalf("Couldn't find key in meta 2: %s", n)
+			// 		}
+			// 	}
 			// }
-
-			// Create value to descend into and interface object to hold the result
-			v := m
-
-			// Value to return
-			var val interface{}
-
-			// Display name
-			dn := ""
-
-			// Cycle through names in expression
-			for i, n := range e {
-				// vi, ok := v[n]
-				// if !ok {
-				// 	log.Fatalf("Couldn't find key in meta 1: %s", n)
-				// }
-				lm := map[string]string{}
-				for k := range v {
-					lm[strings.ToLower(k)] = k
-				}
-
-				var ok bool
-				val, ok = v[lm[strings.ToLower(n)]]
-				if !ok {
-					log.Fatalf("Couldn't find key in meta 3: %s", n)
-				}
-				dn = dn + lm[strings.ToLower(n)]
-
-				// If there is more name to come
-				if i < len(e)-1 {
-					switch val.(type) {
-					case map[string]interface{}:
-						// Convert interface to map of interfaces
-						v = val.(map[string]interface{})
-						dn = dn + "."
-					default:
-						log.Fatalf("Couldn't find key in meta 2: %s", n)
-					}
-				}
-			}
-			vs, err := json.MarshalIndent(&val, "", "  ")
-			fmt.Printf("%s: %v\n", dn, string(vs))
-			if err != nil {
-				log.Fatalln("Couldnt marshal result JSON:", err)
+			// vs, err := json.MarshalIndent(&val, "", "  ")
 			}
 
 		}

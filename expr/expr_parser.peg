@@ -22,21 +22,41 @@ func Isl(v interface{}) []interface{} {
 
 }
 
-Ident
-  <- base:Name subs:('.' Name)* {
-	  strSl := []string{base.(string)}
-		isl := Isl(subs)
-		for _, v := range(isl){
-		  vIsl := Isl(v)
-			strSl = append(strSl, vIsl[1].(string))
-		}
-	  log.Printf("Base: %s, Subs: %s, strSl: %s", base, subs, strSl)
-	  return strSl, nil
+Expr <- _ n:(Meta / Number) EOF {
+  return &ExprNode{MetaSelector: n.(ENode)}, nil
+}
+
+Meta <- base:Name subs:('.' Name)* {
+  m := &MetaNode{NameList: []string{base.(string)}}
+	ssl := Isl(subs)
+	for _, v := range ssl {
+	  s := Isl(v)
+		m.NameList = append(m.NameList, s[1].(string))
 	}
+  log.Printf("DEBUG: Base: %s, Subs: %s, strSl: %s", base, subs, m)
+  return m, nil
+}
 
 Name <- [\pL]+ {
-  log.Printf("Name: %s\n", c.text)
+  log.Printf("DEBUG: Name: %s\n", c.text)
   return string(c.text), nil
 }
 
+Number ← '-'? Integer ( '.' DecimalDigit+ )? Exponent? {
+    // JSON numbers have the same syntax as Go's, and are parseable using
+    // strconv.
+    f, err := strconv.ParseFloat(string(c.text), 64)
+    return &NumberNode{Value: meta.UserValue_N{f}}, err
+}
+
+Integer ← '0' / NonZeroDecimalDigit DecimalDigit*
+
+Exponent ← 'e'i [+-]? DecimalDigit+
+
+DecimalDigit ← [0-9]
+
+NonZeroDecimalDigit ← [1-9]
+
 _ "whitespace" ⟵ [ \n\t\r]*
+
+EOF <- !.
