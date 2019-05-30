@@ -29,26 +29,33 @@ type Context struct {
 
 // Expr is an object representing an expression.
 type Expr struct {
-	text string
-	ast  ENode
+	text           string
+	MetaSelector   ENode
+	ObjectSelector ENode
 }
 
 // Creates a new expression object from a string
-func New(t string) *Expr {
-	return &Expr{text: t}
+func New(text string) (*Expr, error) {
+	ei, err := Parse("", []byte(text))
+	if err != nil {
+		return nil, err
+	}
+	e := ei.(*Expr)
+	e.text = text
+	return e, nil
 }
 
-func (e *Expr) Parse() error {
-	ast, err := Parse(e.text, []byte(e.text))
-	if err != nil {
-		return err
-	}
-	e.ast = ast.(ENode)
-	return nil
-}
+// func (e *Expr) parse() error {
+// 	ast, err := Parse(e.text, []byte(e.text))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	e.MetaSelector = ast.(ENode)
+// 	return nil
+// }
 
 func (e *Expr) Eval(c *Context) (interface{}, error) {
-	return e.ast.Eval(c)
+	return e.MetaSelector.Eval(c)
 }
 
 func (e *Expr) String() string {
@@ -64,11 +71,10 @@ type ENode interface {
 	Eval(*Context) (interface{}, error)
 }
 
-// A Teflon expression is composed of a meta selector and an object selector
-type ExprNode struct {
-	MetaSelector ENode
-	// ObjectSelector ENode
-}
+// // A Teflon expression is composed of a meta selector and an object selector
+// type ExprNode struct {
+// 	MetaSelector ENode
+// }
 
 // N represents a number literal
 type NumberNode struct {
@@ -108,10 +114,6 @@ type MulNode struct {
 type DivNode struct {
 	first  ENode
 	second ENode
-}
-
-func (Expr *ExprNode) Eval(c *Context) (interface{}, error) {
-	return Expr.MetaSelector.Eval(c)
 }
 
 func (N *NumberNode) Eval(c *Context) (interface{}, error) {

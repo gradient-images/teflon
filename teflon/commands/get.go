@@ -25,7 +25,7 @@ import (
 )
 
 var getCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get -m [<expr>..] [<target>..]",
 	Short: "Reads Teflon metadata",
 	Long: `'teflon get' prints the metadata belonging to the targets.  If no <target>
 is specified it will run for '.'.`,
@@ -70,11 +70,11 @@ func Get(cmd *cobra.Command, args []string) {
 
 		// Cycle through metaList, 'es' stands for expression string
 		for _, es := range metaListFlag {
+			log.Println("DEBUG: es:", es)
 			// Create and parse expression
-			e := expr.New(es)
-			err := e.Parse()
+			e, err := expr.New(es)
 			if err != nil {
-				log.Fatalf("FATAL: Couldn't parse expression: %s, %s", es, err)
+				log.Fatalf("FATAL: Couldn't create expression: %s, %s", es, err)
 			}
 			log.Printf("DEBUG: Expr: %s\n", e)
 
@@ -91,40 +91,40 @@ func Get(cmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatalln("FATAL: Couldnt marshal result JSON:", err)
 
-			// // Init context
-			// v := m
-			//
-			// // Value to return and display name
-			// var val interface{}
-			// var dn string
-			//
-			// // Cycle through names in Identifier
-			// for i, n := range e {
-			// 	// Create lower map for case insensitive matching
-			// 	lm := map[string]string{}
-			// 	for k := range v {
-			// 		lm[strings.ToLower(k)] = k
-			// 	}
-			//
-			// 	val, ok := v[lm[strings.ToLower(n)]]
-			// 	if !ok {
-			// 		log.Fatalf("Couldn't find key in meta 3: %s", n)
-			// 	}
-			// 	dn = dn + lm[strings.ToLower(n)]
-			//
-			// 	// If there is more name to come
-			// 	if i < len(e)-1 {
-			// 		switch val.(type) {
-			// 		case map[string]interface{}:
-			// 			// Convert interface to map of interfaces
-			// 			v = val.(map[string]interface{})
-			// 			dn = dn + "."
-			// 		default:
-			// 			log.Fatalf("Couldn't find key in meta 2: %s", n)
-			// 		}
-			// 	}
-			// }
-			// vs, err := json.MarshalIndent(&val, "", "  ")
+				// // Init context
+				// v := m
+				//
+				// // Value to return and display name
+				// var val interface{}
+				// var dn string
+				//
+				// // Cycle through names in Identifier
+				// for i, n := range e {
+				// 	// Create lower map for case insensitive matching
+				// 	lm := map[string]string{}
+				// 	for k := range v {
+				// 		lm[strings.ToLower(k)] = k
+				// 	}
+				//
+				// 	val, ok := v[lm[strings.ToLower(n)]]
+				// 	if !ok {
+				// 		log.Fatalf("Couldn't find key in meta 3: %s", n)
+				// 	}
+				// 	dn = dn + lm[strings.ToLower(n)]
+				//
+				// 	// If there is more name to come
+				// 	if i < len(e)-1 {
+				// 		switch val.(type) {
+				// 		case map[string]interface{}:
+				// 			// Convert interface to map of interfaces
+				// 			v = val.(map[string]interface{})
+				// 			dn = dn + "."
+				// 		default:
+				// 			log.Fatalf("Couldn't find key in meta 2: %s", n)
+				// 		}
+				// 	}
+				// }
+				// vs, err := json.MarshalIndent(&val, "", "  ")
 			}
 
 		}
