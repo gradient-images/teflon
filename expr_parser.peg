@@ -1,5 +1,5 @@
 {
-package expr
+package teflon
 
 // Convert interface{} to []interface{}
 func Isl(v interface{}) []interface{} {

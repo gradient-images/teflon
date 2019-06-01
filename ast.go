@@ -13,7 +13,7 @@
 
 //go:generate pigeon -o expr_parser.go expr_parser.peg
 
-package expr
+package teflon
 
 import (
 	"errors"
@@ -34,7 +34,7 @@ type Expr struct {
 }
 
 // Creates a new expression object from a string
-func New(text string) (*Expr, error) {
+func NewExpr(text string) (*Expr, error) {
 	ei, err := Parse("", []byte(text))
 	if err != nil {
 		return nil, err

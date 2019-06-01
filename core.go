@@ -31,7 +31,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gradient-images/teflon/expr"
 	"github.com/gradient-images/teflon/internal/meta"
 
 	protobuf "github.com/golang/protobuf/proto"
@@ -91,14 +90,14 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 // marshal and unmarshal sequence to and from JSON. It is rather primitive and
 // uneffective (slow), but it has the benefits of being extremely simple to
 // implement and it forces us to be compliant with the JSON standard.
-func (o *TeflonObject) GetContext() (*expr.Context, error) {
+func (o *TeflonObject) GetContext() (*Context, error) {
 	// Marshal object to JSON
 	cj, err := json.Marshal(o)
 	if err != nil {
 		return nil, err
 	}
 	// UnMarshal JSON object to Context
-	var c expr.Context
+	var c Context
 	err = json.Unmarshal(cj, &c.IMap)
 	if err != nil {
 		return nil, err

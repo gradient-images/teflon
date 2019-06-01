@@ -19,7 +19,6 @@ import (
 	"log"
 
 	"github.com/gradient-images/teflon"
-	"github.com/gradient-images/teflon/expr"
 
 	"github.com/spf13/cobra"
 )
@@ -72,7 +71,7 @@ func Get(cmd *cobra.Command, args []string) {
 		for _, es := range metaListFlag {
 			log.Println("DEBUG: es:", es)
 			// Create and parse expression
-			e, err := expr.New(es)
+			e, err := teflon.NewExpr(es)
 			if err != nil {
 				log.Fatalf("FATAL: Couldn't create expression: %s, %s", es, err)
 			}
