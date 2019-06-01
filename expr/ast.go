@@ -19,7 +19,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	// "github.com/gradient-images/teflon/meta"
 )
 
 // String addressable version of the meta hierarchy.
@@ -45,15 +44,6 @@ func New(text string) (*Expr, error) {
 	return e, nil
 }
 
-// func (e *Expr) parse() error {
-// 	ast, err := Parse(e.text, []byte(e.text))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	e.MetaSelector = ast.(ENode)
-// 	return nil
-// }
-
 func (e *Expr) Eval(c *Context) (interface{}, error) {
 	return e.MetaSelector.Eval(c)
 }
@@ -71,10 +61,7 @@ type ENode interface {
 	Eval(*Context) (interface{}, error)
 }
 
-// // A Teflon expression is composed of a meta selector and an object selector
-// type ExprNode struct {
-// 	MetaSelector ENode
-// }
+// MetaSelector Nodes
 
 // N represents a number literal
 type NumberNode struct {
@@ -115,6 +102,22 @@ type DivNode struct {
 	first  ENode
 	second ENode
 }
+
+// ObjectSelector nodes
+
+type ShowSelector struct {
+	next  *ENode
+	count int
+}
+
+type ObjectName struct {
+	next *ENode
+	name string
+}
+
+// Eval Definitions
+
+// MetaSelector Evals
 
 func (N *NumberNode) Eval(c *Context) (interface{}, error) {
 	return N.Value, nil
@@ -244,6 +247,12 @@ func (a *DivNode) Eval(c *Context) (interface{}, error) {
 		}
 	}
 	return v, nil
+}
+
+// ObjectSelector Evals
+
+func (rs *ShowSelector) Eval(c *Context) (interface{}, error) {
+	return nil, nil
 }
 
 // Number needs a string conversion for string concatenation

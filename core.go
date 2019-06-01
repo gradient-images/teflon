@@ -32,7 +32,7 @@ import (
 	"path/filepath"
 
 	"github.com/gradient-images/teflon/expr"
-	"github.com/gradient-images/teflon/meta"
+	"github.com/gradient-images/teflon/internal/meta"
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"

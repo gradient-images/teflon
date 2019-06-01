@@ -15,11 +15,18 @@ Expr <- _ ms:MetaSelector os:ObjectSelector EOF {
   return &Expr{MetaSelector: ms.(ENode)}, nil
 }
 
-ObjectSelector <- ls:Level+ {
+ObjectSelector <- sl:ShowSelector? ls:Level* {
+
+  if sl == nil {
+    log.Println("DEBUG: No ShowSelector.")
+  } else {
+    log.Println("DEBUG: ShowSelector present.")
+  }
+
   return ls, nil
 }
 
-Level <- l:(ShowSelector) {
+Level <- l:(ObjectName) '/'* {
   log.Println("DEBUG: Inside Level.")
   return l, nil
 }
@@ -27,9 +34,18 @@ Level <- l:(ShowSelector) {
 ShowSelector <- ss:'/'+ {
   sssl := Isl(ss)
   log.Println("DEBUG: len(sssl):", len(sssl))
-  return ss, nil
+  ssn := &ShowSelector{count: len(sssl)}
+  return ssn, nil
 }
 
+ObjectName <- fn:( !EscapedChar [^/] / '\\' EscapeSequence )+ {
+  log.Println("DEBUG: Inside FileName. fn:", string(c.text))
+  onn := &ObjectName{name: string(c.text)}
+  return onn, nil
+}
+
+
+// Meta selector selects metadata.
 MetaSelector <- ms:Additive '@' _ {
   return ms, nil
 }

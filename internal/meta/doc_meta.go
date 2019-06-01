@@ -11,8 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The meta package defines the metadata format. Currently functions accessing
-// metadata still lives in the Teflon package, but it might change.
+// The meta package defines the metadata format. This is separated to its own
+// package to prevent the pollution of the API documentation. This is integral part
+// of the teflon package.
 package meta
 
 //go:generate protoc --go_out . ./metadata.proto
