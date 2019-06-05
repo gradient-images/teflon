@@ -28,6 +28,7 @@ package teflon
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -90,19 +91,19 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 // marshal and unmarshal sequence to and from JSON. It is rather primitive and
 // uneffective (slow), but it has the benefits of being extremely simple to
 // implement and it forces us to be compliant with the JSON standard.
-func (o *TeflonObject) GetContext() (*Context, error) {
+func (o *TeflonObject) IMap() map[string]interface{} {
 	// Marshal object to JSON
 	cj, err := json.Marshal(o)
 	if err != nil {
-		return nil, err
+		log.Fatalln("Couldn't marshal object:", o, err)
 	}
 	// UnMarshal JSON object to Context
-	var c Context
-	err = json.Unmarshal(cj, &c.IMap)
+	c := &map[string]interface{}{}
+	err = json.Unmarshal(cj, c)
 	if err != nil {
-		return nil, err
+		log.Fatalln("Couldn't marshal object:", o, err)
 	}
-	return &c, nil
+	return *c
 }
 
 // MetaFile returns the file path to the TeflonObject's meta file. In the case of a

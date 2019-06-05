@@ -11,10 +11,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package commands
+package teflon
 
-var metaListFlag []string // '--meta' or '-m', deprecated, will be removed
-var protoFlag bool        // '--proto' or '-P'
-var showFlag bool         // '--show' or '-S'
-// var userFlag bool
-// var deviceFlag bool
+import "log"
+
+// Evaluates a Teflon expression and returns the result
+func Get(dirS string, exS string) (res interface{}, err error) {
+	log.Printf("DEBUG: Inside Get: dir: %v  ex: %v", dirS, exS)
+
+	ex, err := NewExpr(exS)
+	if err != nil {
+		return nil, err
+	}
+
+	dir, err := NewTeflonObject(dirS)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Context{Dir: dir}
+	res, err = ex.Eval(c)
+
+	return
+}

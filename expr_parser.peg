@@ -11,42 +11,76 @@ func Isl(v interface{}) []interface{} {
 
 }
 
-Expr <- _ ms:MetaSelector os:ObjectSelector EOF {
-  return &Expr{MetaSelector: ms.(ENode)}, nil
-}
+//
+// Grammar Rules
+//
 
-ObjectSelector <- sl:ShowSelector? ls:Level* {
-
-  if sl == nil {
-    log.Println("DEBUG: No ShowSelector.")
-  } else {
-    log.Println("DEBUG: ShowSelector present.")
+Expr <- _ ms:MetaSelector? os:ObjectSelector? EOF {
+  ex := &Expr{}
+  if ms != nil {
+    ex.MetaSelector = ms.(ENode)
   }
-
-  return ls, nil
+  if os != nil {
+    ex.ObjectSelector = os.(ONode)
+  }
+  return ex, nil
 }
 
-Level <- l:(ObjectName) '/'* {
-  log.Println("DEBUG: Inside Level.")
+// ObjectSelector generates chain of ONodes
+ObjectSelector <- root:AbsPath? ls:Level+ {
+  var rootn ONode
+  if root == nil {
+    rootn = &RelPath{}
+  } else {
+    rootn = root.(ONode)
+  }
+  log.Println("DEBUG: Inside ObjectSelector. Root created:", rootn)
+  lsl := Isl(ls)
+  firstl := lsl[0].(ONode)
+  rootn.SetNext(&firstl)
+  for i := 1; i < len(lsl); i++ {
+    prev := lsl[i-1].(ONode)
+    curr := lsl[i].(ONode)
+    prev.SetNext(&curr)
+  }
+  log.Println("DEBUG: Exiting ObjectSelector.")
+  return rootn, nil
+} / root:AbsPath {
+  return root, nil
+}
+
+Level <- l:(RelPath / ObjectName) '/'* {
+  log.Println("DEBUG: Inside Level.", l)
   return l, nil
 }
 
-ShowSelector <- ss:'/'+ {
+AbsPath <- ss:'/'+ {
+  log.Println("DEBUG: Inside AbsPath.")
   sssl := Isl(ss)
-  log.Println("DEBUG: len(sssl):", len(sssl))
-  ssn := &ShowSelector{count: len(sssl)}
+  ssn := &AbsPath{count: len(sssl)}
   return ssn, nil
+}
+
+RelPath <- rr:'.'+ &('/' / EOF) {
+  log.Println("DEBUG: Inside RelPath.")
+  rrsl := Isl(rr)
+  rrn := &RelPath{count: len(rrsl)}
+  return rrn, nil
 }
 
 ObjectName <- fn:( !EscapedChar [^/] / '\\' EscapeSequence )+ {
   log.Println("DEBUG: Inside FileName. fn:", string(c.text))
-  onn := &ObjectName{name: string(c.text)}
+  onn := NewObjectName(string(c.text))
   return onn, nil
 }
 
 
-// Meta selector selects metadata.
-MetaSelector <- ms:Additive '@' _ {
+// MetaSelector generates tree of ENodes.
+MetaSelector <- ms:Additive? '@' _ {
+  log.Println("Inside MetaSelector.")
+  if ms == nil {
+    return &AllMetaNode{}, nil
+  }
   return ms, nil
 }
 

@@ -11,46 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate pigeon -o expr_parser.go expr_parser.peg
-
 package teflon
 
 import (
 	"errors"
+	"log"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
-
-// String addressable version of the meta hierarchy.
-type Context struct {
-	IMap map[string]interface{}
-}
-
-// Expr is an object representing an expression.
-type Expr struct {
-	text           string
-	MetaSelector   ENode
-	ObjectSelector ENode
-}
-
-// Creates a new expression object from a string
-func NewExpr(text string) (*Expr, error) {
-	ei, err := Parse("", []byte(text))
-	if err != nil {
-		return nil, err
-	}
-	e := ei.(*Expr)
-	e.text = text
-	return e, nil
-}
-
-func (e *Expr) Eval(c *Context) (interface{}, error) {
-	return e.MetaSelector.Eval(c)
-}
-
-func (e *Expr) String() string {
-	return e.text
-}
 
 // ENode is the building block of the AST. The meta selector and the object
 // selector both implemeted as a chain of ENodes, only the evaluation is different.
@@ -61,20 +31,30 @@ type ENode interface {
 	Eval(*Context) (interface{}, error)
 }
 
+// ONode must be implemented by object selector nodes.
+type ONode interface {
+	// Match(string) bool
+	NextMatch(*TeflonObject) *TeflonObject
+	// NextGen(*TeflonObject) string
+	SetNext(*ONode)
+}
+
 // MetaSelector Nodes
 
-// N represents a number literal
+// AllMetaNode returns all metadata of an object
+type AllMetaNode struct{}
+
+// NumberNode represents a number literal
 type NumberNode struct {
 	Value float64
 }
 
-// S represents a string literal
+// StringNode represents a string literal
 type StringNode struct {
 	Value string
 }
 
-// Identifier is a slice of strings that are used to search for the name in the
-// Context.
+// MetaNode represents a metadata identifier
 type MetaNode struct {
 	NameList []string
 }
@@ -103,21 +83,51 @@ type DivNode struct {
 	second ENode
 }
 
+//
 // ObjectSelector nodes
+//
 
-type ShowSelector struct {
-	next  *ENode
-	count int
+type AbsPath struct {
+	next   *ONode
+	noMore bool
+	count  int
+}
+
+type RelPath struct {
+	next   *ONode
+	noMore bool
+	count  int
 }
 
 type ObjectName struct {
-	next *ENode
-	name string
+	next    *ONode
+	noMore  bool
+	name    string
+	multi   bool
+	pattern *regexp.Regexp
+	index   int
 }
 
-// Eval Definitions
+var multiPatt *regexp.Regexp = regexp.MustCompile(`.*[*].*`)
 
-// MetaSelector Evals
+func NewObjectName(name string) (onn *ObjectName) {
+	onn = &ObjectName{name: name}
+	if multiPatt.MatchString(name) {
+		patts := strings.ReplaceAll(name, "*", ".*")
+		log.Println("DEBUG: patts:", patts)
+		onn.pattern = regexp.MustCompile(patts)
+		onn.multi = true
+	}
+	return
+}
+
+//
+// ENode Implementations
+//
+
+func (amn *AllMetaNode) Eval(c *Context) (interface{}, error) {
+	return c.IMap, nil
+}
 
 func (N *NumberNode) Eval(c *Context) (interface{}, error) {
 	return N.Value, nil
@@ -249,13 +259,133 @@ func (a *DivNode) Eval(c *Context) (interface{}, error) {
 	return v, nil
 }
 
-// ObjectSelector Evals
+//
+// ONode Implementations
+//
 
-func (rs *ShowSelector) Eval(c *Context) (interface{}, error) {
-	return nil, nil
+func (apn *AbsPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	if apn.noMore {
+		return nil
+	}
+
+	var err error
+	if apn.count == 1 {
+		res, err = NewTeflonObject("/")
+		if err != nil {
+			return nil
+		}
+	} else {
+		res, err = NewTeflonObject("//")
+		if err != nil {
+			return nil
+		}
+	}
+
+	if apn.next != nil {
+		res = (*apn.next).NextMatch(res)
+	}
+
+	if res == nil {
+		apn.noMore = true
+	}
+
+	return res
 }
 
-// Number needs a string conversion for string concatenation
+func (apn *AbsPath) SetNext(node *ONode) {
+	apn.next = node
+}
+
+func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	if rpn.noMore {
+		return nil
+	}
+
+	// Give back o or traverse upvards.
+	if rpn.count > 1 {
+		fspath := o.Path
+		for i := 1; i < rpn.count; i++ {
+			fspath = filepath.Dir(fspath)
+		}
+		po, err := NewTeflonObject(fspath)
+		if err != nil {
+			log.Fatalln("FATAL: Couldn't create object:", fspath)
+		}
+		o = po
+	}
+
+	if rpn.next != nil {
+		o = (*rpn.next).NextMatch(o)
+	}
+
+	if o == nil {
+		rpn.noMore = true
+	}
+	return o
+}
+
+func (rpn *RelPath) SetNext(node *ONode) {
+	rpn.next = node
+}
+
+func (onn *ObjectName) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	var err error
+	if onn.noMore {
+		return nil
+	}
+
+	if onn.multi {
+		children, err := filepath.Glob(filepath.Join(o.Path, "*"))
+		if err != nil {
+			onn.noMore = true
+			return nil
+		}
+		for onn.index < len(children) {
+			name := filepath.Base(children[onn.index])
+			if onn.pattern.MatchString(name) {
+				res, err = NewTeflonObject(children[onn.index])
+				onn.index++
+				if err != nil {
+					log.Fatalln("FATAL: Couldn't create found object.", name)
+				}
+				break
+			}
+			onn.index++
+		}
+		if res == nil {
+			onn.noMore = true
+			return nil
+		}
+		log.Println("DEBUG: Found match:", res.Path, onn.index)
+	} else {
+		// If not multi.
+		res, err = NewTeflonObject(filepath.Join(o.Path, onn.name))
+		if err != nil {
+			onn.noMore = true
+			return nil
+		}
+	}
+
+	if onn.next != nil {
+		log.Println("DEBUG: Traversing to next node:", onn.next)
+		res = (*onn.next).NextMatch(res)
+	}
+	if res == nil {
+		onn.noMore = true
+	}
+
+	return res
+}
+
+func (onn *ObjectName) SetNext(node *ONode) {
+	onn.next = node
+}
+
+//
+// Utility Functions
+//
+
+// NumberNode needs to be Stringer for string concatenation
 func (N NumberNode) String() string {
 	return strconv.FormatFloat(N.Value, 'G', -1, 64)
 }
