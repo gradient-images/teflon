@@ -50,7 +50,7 @@ ObjectSelector <- root:AbsPath? ls:Level+ {
 }
 
 Level <- l:(RelPath / ObjectName) '/'* {
-  log.Println("DEBUG: Inside Level.", l)
+  // log.Println("DEBUG: Inside Level.", l)
   return l, nil
 }
 

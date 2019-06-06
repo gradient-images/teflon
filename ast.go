@@ -100,12 +100,13 @@ type RelPath struct {
 }
 
 type ObjectName struct {
-	next    *ONode
-	noMore  bool
-	name    string
-	multi   bool
-	pattern *regexp.Regexp
-	index   int
+	next      *ONode
+	noMore    bool
+	name      string
+	multi     bool
+	pattern   *regexp.Regexp
+	index     int
+	lastMatch *TeflonObject
 }
 
 var multiPatt *regexp.Regexp = regexp.MustCompile(`.*[*].*`)
@@ -297,9 +298,13 @@ func (apn *AbsPath) SetNext(node *ONode) {
 }
 
 func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	var err error
 	if rpn.noMore {
 		return nil
 	}
+
+	log.Printf("DEBUG: res: (%v, %T)", res, res)
+	log.Printf("DEBUG: rpn.count: %v", rpn.count)
 
 	// Give back o or traverse upvards.
 	if rpn.count > 1 {
@@ -307,21 +312,25 @@ func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 		for i := 1; i < rpn.count; i++ {
 			fspath = filepath.Dir(fspath)
 		}
-		po, err := NewTeflonObject(fspath)
+		res, err = NewTeflonObject(fspath)
 		if err != nil {
 			log.Fatalln("FATAL: Couldn't create object:", fspath)
 		}
-		o = po
+	} else {
+		res = o
 	}
 
 	if rpn.next != nil {
-		o = (*rpn.next).NextMatch(o)
-	}
-
-	if o == nil {
+		log.Println("DEBUG: Traversing next from RelPath.")
+		res = (*rpn.next).NextMatch(res)
+	} else {
 		rpn.noMore = true
 	}
-	return o
+
+	if res == nil {
+		rpn.noMore = true
+	}
+	return res
 }
 
 func (rpn *RelPath) SetNext(node *ONode) {
@@ -335,28 +344,34 @@ func (onn *ObjectName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	}
 
 	if onn.multi {
-		children, err := filepath.Glob(filepath.Join(o.Path, "*"))
-		if err != nil {
-			onn.noMore = true
-			return nil
-		}
-		for onn.index < len(children) {
-			name := filepath.Base(children[onn.index])
-			if onn.pattern.MatchString(name) {
-				res, err = NewTeflonObject(children[onn.index])
-				onn.index++
-				if err != nil {
-					log.Fatalln("FATAL: Couldn't create found object.", name)
-				}
-				break
+		if onn.lastMatch == nil {
+			children, err := filepath.Glob(filepath.Join(o.Path, "*"))
+			if err != nil {
+				onn.noMore = true
+				return nil
 			}
-			onn.index++
+			for onn.index < len(children) {
+				name := filepath.Base(children[onn.index])
+				if onn.pattern.MatchString(name) {
+					res, err = NewTeflonObject(children[onn.index])
+					onn.index++
+					if err != nil {
+						log.Fatalln("FATAL: Couldn't create found object.", name)
+					}
+					break
+				}
+				onn.index++
+			}
+			if res == nil {
+				onn.noMore = true
+				return nil
+			} else {
+				onn.lastMatch = res
+			}
+			log.Println("DEBUG: Found match:", res.Path, onn.index)
+		} else {
+			res = onn.lastMatch
 		}
-		if res == nil {
-			onn.noMore = true
-			return nil
-		}
-		log.Println("DEBUG: Found match:", res.Path, onn.index)
 	} else {
 		// If not multi.
 		res, err = NewTeflonObject(filepath.Join(o.Path, onn.name))
@@ -367,12 +382,24 @@ func (onn *ObjectName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	}
 
 	if onn.next != nil {
-		log.Println("DEBUG: Traversing to next node:", onn.next)
 		res = (*onn.next).NextMatch(res)
+		if res == nil {
+			onn.lastMatch = nil
+		}
+	} else {
+		onn.lastMatch = nil
 	}
-	if res == nil {
+
+	if onn.next == nil && !onn.multi {
 		onn.noMore = true
 	}
+
+	if res == nil {
+		onn.lastMatch = nil
+		onn.noMore = true
+	}
+
+	// log.Printf("DEBUG: Returning res.Path: %v", res.Path)
 
 	return res
 }
