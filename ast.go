@@ -99,27 +99,18 @@ type RelPath struct {
 	count  int
 }
 
-type ObjectName struct {
-	next      *ONode
-	noMore    bool
-	name      string
-	multi     bool
-	pattern   *regexp.Regexp
-	index     int
-	lastMatch *TeflonObject
+type ExactName struct {
+	next   *ONode
+	noMore bool
+	name   string
 }
 
-var multiPatt *regexp.Regexp = regexp.MustCompile(`.*[*].*`)
-
-func NewObjectName(name string) (onn *ObjectName) {
-	onn = &ObjectName{name: name}
-	if multiPatt.MatchString(name) {
-		patts := strings.ReplaceAll(name, "*", ".*")
-		log.Println("DEBUG: patts:", patts)
-		onn.pattern = regexp.MustCompile(patts)
-		onn.multi = true
-	}
-	return
+type MultiName struct {
+	next         *ONode
+	pattern      *regexp.Regexp
+	index        int
+	moreChildren *TeflonObject
+	children     []string
 }
 
 //
@@ -265,11 +256,11 @@ func (a *DivNode) Eval(c *Context) (interface{}, error) {
 //
 
 func (apn *AbsPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	var err error
 	if apn.noMore {
 		return nil
 	}
 
-	var err error
 	if apn.count == 1 {
 		res, err = NewTeflonObject("/")
 		if err != nil {
@@ -282,12 +273,14 @@ func (apn *AbsPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 		}
 	}
 
-	if apn.next != nil {
-		res = (*apn.next).NextMatch(res)
-	}
-
-	if res == nil {
+	if apn.next == nil {
+		// In itself AbsPath reurns only one match.
 		apn.noMore = true
+	} else {
+		res = (*apn.next).NextMatch(res)
+		if res == nil {
+			apn.noMore = true
+		}
 	}
 
 	return res
@@ -303,9 +296,6 @@ func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 		return nil
 	}
 
-	log.Printf("DEBUG: res: (%v, %T)", res, res)
-	log.Printf("DEBUG: rpn.count: %v", rpn.count)
-
 	// Give back o or traverse upvards.
 	if rpn.count > 1 {
 		fspath := o.Path
@@ -320,16 +310,15 @@ func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 		res = o
 	}
 
-	if rpn.next != nil {
-		log.Println("DEBUG: Traversing next from RelPath.")
-		res = (*rpn.next).NextMatch(res)
-	} else {
+	if rpn.next == nil {
 		rpn.noMore = true
+	} else {
+		res = (*rpn.next).NextMatch(res)
+		if res == nil {
+			rpn.noMore = true
+		}
 	}
 
-	if res == nil {
-		rpn.noMore = true
-	}
 	return res
 }
 
@@ -337,75 +326,83 @@ func (rpn *RelPath) SetNext(node *ONode) {
 	rpn.next = node
 }
 
-func (onn *ObjectName) NextMatch(o *TeflonObject) (res *TeflonObject) {
+func (enn *ExactName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	var err error
-	if onn.noMore {
+	if enn.noMore {
 		return nil
 	}
 
-	if onn.multi {
-		if onn.lastMatch == nil {
-			children, err := filepath.Glob(filepath.Join(o.Path, "*"))
-			if err != nil {
-				onn.noMore = true
-				return nil
-			}
-			for onn.index < len(children) {
-				name := filepath.Base(children[onn.index])
-				if onn.pattern.MatchString(name) {
-					res, err = NewTeflonObject(children[onn.index])
-					onn.index++
+	res, err = NewTeflonObject(filepath.Join(o.Path, enn.name))
+	if err != nil {
+		enn.noMore = true
+		return nil
+	}
+
+	if enn.next == nil {
+		enn.noMore = true
+	} else {
+		res = (*enn.next).NextMatch(res)
+		if res == nil {
+			enn.noMore = true
+		}
+	}
+
+	return res
+}
+
+func (enn *ExactName) SetNext(node *ONode) {
+	enn.next = node
+}
+
+func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	var err error
+
+	// Init children.
+	if mnn.children == nil {
+		mnn.children = o.Children()
+	}
+
+	for res == nil {
+		if mnn.moreChildren != nil {
+			res = mnn.moreChildren
+		} else {
+			log.Printf("DEBUG: Looking for multi matches: mnn.index: %v", mnn.index)
+			for mnn.index < len(mnn.children) {
+				name := mnn.children[mnn.index]
+				mnn.index++
+				if mnn.pattern.MatchString(name) {
+					log.Printf("DEBUG: Found match: name: %v", name)
+					res, err = NewTeflonObject(filepath.Join(o.Path, name))
 					if err != nil {
 						log.Fatalln("FATAL: Couldn't create found object.", name)
 					}
 					break
 				}
-				onn.index++
 			}
+
+			// No more matching child.
 			if res == nil {
-				onn.noMore = true
+				mnn.index = 0
+				mnn.moreChildren = nil
+				mnn.children = nil
 				return nil
-			} else {
-				onn.lastMatch = res
 			}
-			log.Println("DEBUG: Found match:", res.Path, onn.index)
-		} else {
-			res = onn.lastMatch
 		}
-	} else {
-		// If not multi.
-		res, err = NewTeflonObject(filepath.Join(o.Path, onn.name))
-		if err != nil {
-			onn.noMore = true
-			return nil
+
+		if mnn.next != nil {
+			log.Printf("DEBUG: Calling child of %v", res.FileInfo.Name)
+			mnn.moreChildren = res
+			res = (*mnn.next).NextMatch(res)
+			if res == nil {
+				mnn.moreChildren = nil
+			}
 		}
 	}
-
-	if onn.next != nil {
-		res = (*onn.next).NextMatch(res)
-		if res == nil {
-			onn.lastMatch = nil
-		}
-	} else {
-		onn.lastMatch = nil
-	}
-
-	if onn.next == nil && !onn.multi {
-		onn.noMore = true
-	}
-
-	if res == nil {
-		onn.lastMatch = nil
-		onn.noMore = true
-	}
-
-	// log.Printf("DEBUG: Returning res.Path: %v", res.Path)
-
 	return res
 }
 
-func (onn *ObjectName) SetNext(node *ONode) {
-	onn.next = node
+func (mnn *MultiName) SetNext(node *ONode) {
+	mnn.next = node
 }
 
 //

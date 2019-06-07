@@ -106,6 +106,22 @@ func (o *TeflonObject) IMap() map[string]interface{} {
 	return *c
 }
 
+// GetChildren returns a slice of strings with the filenames.
+func (o *TeflonObject) Children() (ch []string) {
+	ch = []string{}
+	f, err := os.Open(o.Path)
+	defer f.Close()
+	if err != nil {
+		return ch
+	}
+
+	ch, err = f.Readdirnames(-1)
+	if err != nil {
+		return ch
+	}
+	return ch
+}
+
 // MetaFile returns the file path to the TeflonObject's meta file. In the case of a
 // file it is:
 //   $DIR/.teflon/$FILE._
