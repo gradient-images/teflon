@@ -22,23 +22,6 @@ import (
 	"strings"
 )
 
-// ENode is the building block of the AST. The meta selector and the object
-// selector both implemeted as a chain of ENodes, only the evaluation is different.
-// The meta selector part is evaluated bottom up as traditional C-like expressions
-// do, while the object selector part is evaluated top down as traditional globbing
-// does.
-type ENode interface {
-	Eval(*Context) (interface{}, error)
-}
-
-// ONode must be implemented by object selector nodes.
-type ONode interface {
-	// Match(string) bool
-	NextMatch(*TeflonObject) *TeflonObject
-	// NextGen(*TeflonObject) string
-	SetNext(*ONode)
-}
-
 // MetaSelector Nodes
 
 // AllMetaNode returns all metadata of an object
@@ -87,13 +70,13 @@ type DivNode struct {
 // ObjectSelector nodes
 //
 
-type AbsPath struct {
+type RelPath struct {
 	next   *ONode
 	noMore bool
 	count  int
 }
 
-type RelPath struct {
+type AbsPath struct {
 	next   *ONode
 	noMore bool
 	count  int
@@ -106,11 +89,11 @@ type ExactName struct {
 }
 
 type MultiName struct {
-	next         *ONode
-	pattern      *regexp.Regexp
-	index        int
-	moreChildren *TeflonObject
-	children     []string
+	next      *ONode
+	pattern   *regexp.Regexp
+	index     int
+	moreOfObj *TeflonObject
+	children  []string
 }
 
 //
@@ -255,6 +238,63 @@ func (a *DivNode) Eval(c *Context) (interface{}, error) {
 // ONode Implementations
 //
 
+// RelPath
+
+func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
+	var err error
+	if rpn.noMore {
+		rpn.noMore = false
+		return nil
+	}
+
+	// Give back o or traverse upvards.
+	if rpn.count > 1 {
+		fspath := o.Path
+		for i := 1; i < rpn.count; i++ {
+			fspath = filepath.Dir(fspath)
+		}
+		res, err = NewTeflonObject(fspath)
+		if err != nil {
+			log.Fatalln("FATAL: Couldn't create object:", fspath)
+		}
+	} else {
+		res = o
+	}
+
+	if rpn.next == nil {
+		rpn.noMore = true
+	} else {
+		res = (*rpn.next).NextMatch(res)
+		if res == nil {
+			rpn.noMore = true
+		}
+	}
+
+	return res
+}
+
+func (node *RelPath) GenerateAll(fspSl []string) (res []string) {
+	for _, fsp := range fspSl {
+		// Give back o or traverse upvards.
+		for i := 1; i < node.count; i++ {
+			fsp = filepath.Dir(fsp)
+		}
+		res = append(res, fsp)
+	}
+
+	if node.next != nil {
+		res = (*node.next).GenerateAll(res)
+	}
+
+	return res
+}
+
+func (rpn *RelPath) SetNext(node *ONode) {
+	rpn.next = node
+}
+
+// AbsPath
+
 func (apn *AbsPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	var err error
 	if apn.noMore {
@@ -286,45 +326,28 @@ func (apn *AbsPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	return res
 }
 
+func (node *AbsPath) GenerateAll(fspSl []string) (res []string) {
+	if node.count == 1 {
+		res = []string{"/"}
+	} else {
+		shw, err := NewTeflonObject("//")
+		if err != nil {
+			return []string{}
+		}
+		res = []string{shw.Path}
+	}
+
+	if node.next != nil {
+		res = (*node.next).GenerateAll(res)
+	}
+	return res
+}
+
 func (apn *AbsPath) SetNext(node *ONode) {
 	apn.next = node
 }
 
-func (rpn *RelPath) NextMatch(o *TeflonObject) (res *TeflonObject) {
-	var err error
-	if rpn.noMore {
-		return nil
-	}
-
-	// Give back o or traverse upvards.
-	if rpn.count > 1 {
-		fspath := o.Path
-		for i := 1; i < rpn.count; i++ {
-			fspath = filepath.Dir(fspath)
-		}
-		res, err = NewTeflonObject(fspath)
-		if err != nil {
-			log.Fatalln("FATAL: Couldn't create object:", fspath)
-		}
-	} else {
-		res = o
-	}
-
-	if rpn.next == nil {
-		rpn.noMore = true
-	} else {
-		res = (*rpn.next).NextMatch(res)
-		if res == nil {
-			rpn.noMore = true
-		}
-	}
-
-	return res
-}
-
-func (rpn *RelPath) SetNext(node *ONode) {
-	rpn.next = node
-}
+// ExactName
 
 func (enn *ExactName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	var err error
@@ -350,9 +373,24 @@ func (enn *ExactName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	return res
 }
 
+func (node *ExactName) GenerateAll(fspSl []string) (res []string) {
+	for _, fsp := range fspSl {
+		fsp = filepath.Join(fsp, node.name)
+		res = append(res, fsp)
+	}
+
+	if node.next != nil {
+		res = (*node.next).GenerateAll(res)
+	}
+
+	return res
+}
+
 func (enn *ExactName) SetNext(node *ONode) {
 	enn.next = node
 }
+
+// MultiName
 
 func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	var err error
@@ -363,8 +401,8 @@ func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 	}
 
 	for res == nil {
-		if mnn.moreChildren != nil {
-			res = mnn.moreChildren
+		if mnn.moreOfObj != nil {
+			res = mnn.moreOfObj
 		} else {
 			log.Printf("DEBUG: Looking for multi matches: mnn.index: %v", mnn.index)
 			for mnn.index < len(mnn.children) {
@@ -383,7 +421,7 @@ func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 			// No more matching child.
 			if res == nil {
 				mnn.index = 0
-				mnn.moreChildren = nil
+				mnn.moreOfObj = nil
 				mnn.children = nil
 				return nil
 			}
@@ -391,13 +429,33 @@ func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 
 		if mnn.next != nil {
 			log.Printf("DEBUG: Calling child of %v", res.FileInfo.Name)
-			mnn.moreChildren = res
+			mnn.moreOfObj = res
 			res = (*mnn.next).NextMatch(res)
 			if res == nil {
-				mnn.moreChildren = nil
+				mnn.moreOfObj = nil
 			}
 		}
 	}
+	return res
+}
+
+func (node *MultiName) GenerateAll(fspSl []string) (res []string) {
+	for _, fsp := range fspSl {
+		o, err := NewTeflonObject(fsp)
+		if err != nil {
+			continue
+		}
+		for _, ch := range o.Children() {
+			if node.pattern.MatchString(ch) {
+				res = append(res, filepath.Join(fsp, ch))
+			}
+		}
+	}
+
+	if node.next != nil {
+		res = (*node.next).GenerateAll(res)
+	}
+
 	return res
 }
 

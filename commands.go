@@ -13,18 +13,22 @@
 
 package teflon
 
-import "log"
+import (
+	"encoding/json"
+	"errors"
+	"log"
+)
 
 // Evaluates a Teflon expression and returns the result
-func Get(dirS string, exS string) (res interface{}, err error) {
-	log.Printf("DEBUG: Inside Get: dir: %v  ex: %v", dirS, exS)
+func Get(dirs string, exs string) (res interface{}, err error) {
+	log.Printf("DEBUG: Inside Get(): dir: %v  ex: %v", dirs, exs)
 
-	ex, err := NewExpr(exS)
+	ex, err := NewExpr(exs)
 	if err != nil {
 		return nil, err
 	}
 
-	dir, err := NewTeflonObject(dirS)
+	dir, err := NewTeflonObject(dirs)
 	if err != nil {
 		return nil, err
 	}
@@ -33,4 +37,41 @@ func Get(dirS string, exS string) (res interface{}, err error) {
 	res, err = ex.Eval(c)
 
 	return
+}
+
+// CreateShow() creates new Teflon show.
+func (o *TeflonObject) CreateShow(exs string) (no *TeflonObject, err error) {
+	log.Printf("DEBUG: Inside CreateShow(): o.Path: %v  exs: %v", o.Path, exs)
+	ex, err := NewExpr(exs)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Context{Dir: o}
+
+	// NOTE: Eval's first return value needs clarification in the case of an error.
+	res, err := ex.Generate(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create display string of result (dres).
+	dres, err := json.MarshalIndent(res, "", "  ")
+	if err != nil {
+		log.Fatalln("FATAL: Couldnt marshal result JSON:", err)
+	}
+	log.Printf("DEBUG: dres: %s\n", dres)
+
+	switch l := len(res); {
+	case l == 0:
+		return nil, errors.New("Pattern returned nothing:" + exs)
+	case l > 1:
+		return nil, errors.New("More than one value returned:" + exs)
+	}
+	return nil, err
+}
+
+// CreateObject() creates a new FS object and triggers a new event.
+func CreateObject() {
+
 }

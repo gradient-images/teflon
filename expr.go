@@ -15,6 +15,25 @@
 
 package teflon
 
+import "errors"
+
+// ENode is the building block of the AST. The meta selector and the object
+// selector both implemeted as a chain of ENodes, only the evaluation is different.
+// The meta selector part is evaluated bottom up as traditional C-like expressions
+// do, while the object selector part is evaluated top down as traditional globbing
+// does.
+type ENode interface {
+	Eval(*Context) (interface{}, error)
+}
+
+// ONode must be implemented by object selector nodes.
+type ONode interface {
+	// Match(string) bool
+	NextMatch(*TeflonObject) *TeflonObject
+	GenerateAll([]string) []string
+	SetNext(*ONode)
+}
+
 // String addressable version of the meta hierarchy.
 type Context struct {
 	IMap map[string]interface{}
@@ -34,34 +53,34 @@ func NewExpr(text string) (*Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	e := ei.(*Expr)
-	e.text = text
-	return e, nil
+	ex := ei.(*Expr)
+	ex.text = text
+	return ex, nil
 }
 
 // Evaluation starts with the object selector, since it provides the context for
 // the meta selection.
-func (e *Expr) Eval(c *Context) (res interface{}, err error) {
-	if e.ObjectSelector == nil {
-		if e.MetaSelector == nil {
+func (ex *Expr) Eval(c *Context) (res interface{}, err error) {
+	if ex.ObjectSelector == nil {
+		if ex.MetaSelector == nil {
 			return c.Dir, nil
 		} else {
 			cc := &Context{Dir: c.Dir, IMap: c.Dir.IMap()}
-			return e.MetaSelector.Eval(cc)
+			return ex.MetaSelector.Eval(cc)
 		}
 	} else {
 		rsl := []interface{}{}
 		for {
-			o := e.ObjectSelector.NextMatch(c.Dir)
+			o := ex.ObjectSelector.NextMatch(c.Dir)
 			if o == nil {
 				break
 			}
 
-			if e.MetaSelector == nil {
+			if ex.MetaSelector == nil {
 				rsl = append(rsl, o.Path)
 			} else {
 				cc := &Context{Dir: o, IMap: o.IMap()}
-				m, err := e.MetaSelector.Eval(cc)
+				m, err := ex.MetaSelector.Eval(cc)
 				if err != nil {
 					return nil, err
 				}
@@ -72,6 +91,15 @@ func (e *Expr) Eval(c *Context) (res interface{}, err error) {
 	}
 }
 
-func (e *Expr) String() string {
-	return e.text
+// Generation is the process of generating a []string from an object selector.
+func (ex *Expr) Generate(c *Context) (res []string, err error) {
+	if ex.MetaSelector != nil {
+		return nil, errors.New("Meta selector is not allowed in generator expressions.")
+	}
+	res = ex.ObjectSelector.GenerateAll([]string{c.Dir.Path})
+	return res, nil
+}
+
+func (ex *Expr) String() string {
+	return ex.text
 }
