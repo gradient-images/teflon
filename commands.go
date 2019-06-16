@@ -17,6 +17,10 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
+	"path/filepath"
+
+	"github.com/otiai10/copy"
 )
 
 // Evaluates a Teflon expression and returns the result
@@ -40,8 +44,9 @@ func Get(dirs string, exs string) (res interface{}, err error) {
 }
 
 // CreateShow() creates new Teflon show.
-func (o *TeflonObject) CreateShow(exs string) (no *TeflonObject, err error) {
+func (o *TeflonObject) CreateShow(exs string, protoName string) (oSl []*TeflonObject, err error) {
 	log.Printf("DEBUG: Inside CreateShow(): o.Path: %v  exs: %v", o.Path, exs)
+
 	ex, err := NewExpr(exs)
 	if err != nil {
 		return nil, err
@@ -49,7 +54,6 @@ func (o *TeflonObject) CreateShow(exs string) (no *TeflonObject, err error) {
 
 	c := &Context{Dir: o}
 
-	// NOTE: Eval's first return value needs clarification in the case of an error.
 	res, err := ex.Generate(c)
 	if err != nil {
 		return nil, err
@@ -58,17 +62,43 @@ func (o *TeflonObject) CreateShow(exs string) (no *TeflonObject, err error) {
 	// Create display string of result (dres).
 	dres, err := json.MarshalIndent(res, "", "  ")
 	if err != nil {
-		log.Fatalln("FATAL: Couldnt marshal result JSON:", err)
+		log.Fatalln("ABORT: Couldnt marshal result JSON:", err)
 	}
 	log.Printf("DEBUG: dres: %s\n", dres)
 
-	switch l := len(res); {
-	case l == 0:
+	if len(res) == 0 {
 		return nil, errors.New("Pattern returned nothing:" + exs)
-	case l > 1:
-		return nil, errors.New("More than one value returned:" + exs)
 	}
-	return nil, err
+
+	proto := filepath.Join(TeflonConf, ShowProtoDirName, protoName)
+
+	for _, fsp := range res {
+		if _, err := os.Stat(fsp); !os.IsNotExist(err) {
+			log.Println("WARNING: Target already exists:", fsp)
+			continue
+		}
+
+		err = copy.Copy(proto, fsp)
+		if err != nil {
+			log.Fatalln("ABORT: Couldn't copy show proto:", err)
+		}
+		log.Printf("SUCCESS: Created new show: %s (%s)", fsp, protoName)
+
+		o, err := NewTeflonObject(fsp)
+		if err != nil {
+			log.Fatalln("ABORT: Couldn't create object:", err)
+		}
+
+		o.ShowRoot = true
+		o.Proto = proto
+
+		if o.SyncMeta() != nil {
+			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)
+		}
+
+		oSl = append(oSl, o)
+	}
+	return oSl, nil
 }
 
 // CreateObject() creates a new FS object and triggers a new event.

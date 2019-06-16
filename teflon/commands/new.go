@@ -33,16 +33,34 @@ creates a new object based on the one it finds matching the requested type. If t
 }
 
 var newFileFlag bool
+var newShowProtoFlag string
 
 func init() {
-	newCmd.Flags().BoolVarP(&newFileFlag, "file", "f", false,
+	newCmd.Flags().BoolVarP(
+		&newFileFlag,
+		"file",
+		"f",
+		false,
 		"Create an empty file instead of an empty directory.",
 	)
-	newCmd.Flags().BoolVarP(&showFlag, "show", "S", false, "Create new show.")
+	newCmd.Flags().BoolVarP(
+		&showFlag,
+		"show",
+		"S",
+		false,
+		"Create new show.",
+	)
+	newCmd.Flags().StringVarP(
+		&newShowProtoFlag,
+		"show-proto",
+		"p",
+		"Default",
+		"Prototype to use during show creation.",
+	)
 	rootCmd.AddCommand(newCmd)
 }
 
-// Creates a new teflon object from a prototype.
+// Creates new teflon object and triggers new event.
 func New(cmd *cobra.Command, args []string) {
 	// Create object for current working directory
 	pwd, err := teflon.NewTeflonObject(".")
@@ -52,14 +70,13 @@ func New(cmd *cobra.Command, args []string) {
 
 	// If showFlag is set `new` will create a shows instead of a regular object.
 	if showFlag {
-		nshw, err := pwd.CreateShow(args[0])
+		nshws, err := pwd.CreateShow(args[0], newShowProtoFlag)
 		if err != nil {
-			log.Fatalln("Couldnt create show:", err)
+			log.Fatalln("ABORT: Couldnt create show:", err)
 		}
-		if nshw == nil {
-			fmt.Println("Nothing created.")
+		for _, shw := range nshws {
+			fmt.Println(shw.Path)
 		}
-		return
 	}
 
 	// // Create regular objects.
