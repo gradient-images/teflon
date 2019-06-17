@@ -72,106 +72,20 @@ func New(cmd *cobra.Command, args []string) {
 	if showFlag {
 		nshws, err := pwd.CreateShow(args[0], newShowProtoFlag)
 		if err != nil {
-			log.Fatalln("ABORT: Couldnt create show:", err)
+			log.Fatalln("ABORT: Couldnt create shows:", err)
 		}
 		for _, shw := range nshws {
 			fmt.Println(shw.Path)
 		}
+		return
 	}
 
-	// // Create regular objects.
-	// for _, target := range args {
-	// 	fspath, err := teflon.Path(target)
-	// 	if err != nil {
-	// 		log.Fatalln("ABORT: Malformed target:", err)
-	// 	}
-	//
-	// 	// Create object for parent dir.
-	// 	targetDir, targetName := filepath.Split(fspath)
-	// 	parent, err := teflon.NewTeflonObject(targetDir)
-	// 	if err != nil {
-	// 		log.Fatalln("ABORT: Couldn't create object for containing dir:", err)
-	// 	}
-	// 	if parent.Show == nil {
-	// 		log.Fatalln("ABORT: Prototyping not supported outside shows.")
-	// 	}
-	//
-	// 	// Check if explicit prototype is given then find appropriate proto.
-	// 	var proto string
-	// 	if newForceProtoFlag == "" {
-	// 		proto, err = parent.FindProtoForTarget(targetName)
-	// 		if err != nil {
-	// 			log.Fatalln("ABORT: Can't find prototype:", err)
-	// 		}
-	// 	} else {
-	// 		proto, err = parent.FindProto(newForceProtoFlag)
-	// 		if err != nil {
-	// 			log.Fatalln("ABORT: Can't find appropriate prototype:", err)
-	// 		}
-	// 	}
-	//
-	// 	// Copy the prototype if target doesn't exist.
-	// 	if !teflon.Exist(fspath) {
-	// 		err = copy.Copy(proto, fspath)
-	// 		if err != nil {
-	// 			log.Fatalln("ABORT: Couldn't copy prototype:", err)
-	// 		}
-	// 		log.Printf("DEBUG: Copied '%s' to '%s'.", teflon.ProtoPath(proto), teflon.ShowAbs(fspath))
-	// 	} else {
-	// 		log.Println("DEBUG: Target exists, skipped copying of proto.")
-	// 	}
-	//
-	// 	// Set Proto: field and clean instances on target.
-	// 	o, err := teflon.NewTeflonObject(fspath)
-	// 	if err != nil {
-	// 		log.Fatalln("ABORT: Couldn't create object:", err)
-	// 	}
-	// 	err = o.SetProto(proto)
-	// 	if err != nil {
-	// 		log.Fatalln("ABORT: Couldn't set up proto references:", err)
-	// 	}
-	//
-	// 	log.Printf("SUCCESS: Prototyped '%v' based on '%v'.", target, teflon.ProtoPath(proto))
-	//
-	// }
-}
+	nobjs, err := pwd.CreateObject(args[0], newFileFlag)
+	if err != nil {
+		log.Fatalln("ABORT: Couldn't create objects:", err)
+	}
 
-// newShow (`teflon new -s`) creates a new show based on a template in
-// `teflon.TeflonConf`. The arguments are targets.
-// func newShow(cmd *cobra.Command, targets []string) {
-// 	for _, target := range targets {
-// 		fspath, err := teflon.Path(target)
-// 		if err != nil {
-// 			log.Fatalln(err)
-// 		}
-//
-// 		if _, err := os.Stat(fspath); !os.IsNotExist(err) {
-// 			log.Fatalf("ABORT: Target already exists: '%s'", fspath)
-// 		}
-//
-// 		// Set default proto if not set.
-// 		if newForceProtoFlag == "" {
-// 			newForceProtoFlag = "Default"
-// 		}
-//
-// 		proto := filepath.Join(teflon.TeflonConf, teflon.ShowProtoDirName, newForceProtoFlag)
-//
-// 		err = copy.Copy(proto, fspath)
-// 		if err != nil {
-// 			log.Fatalln(err)
-// 		}
-// 		log.Printf("SUCCESS: Created new show: %s (%s)", fspath, newForceProtoFlag)
-//
-// 		o, err := teflon.NewTeflonObject(fspath)
-// 		if err != nil {
-// 			log.Fatalln("ABORT: Couldn't create object:", err)
-// 		}
-//
-// 		o.ShowRoot = true
-// 		o.Proto = proto
-//
-// 		if o.SyncMeta() != nil {
-// 			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)
-// 		}
-// 	}
-// }
+	for _, obj := range nobjs {
+		fmt.Println(obj.Path)
+	}
+}

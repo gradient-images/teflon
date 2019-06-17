@@ -14,7 +14,6 @@
 package teflon
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"os"
@@ -24,23 +23,18 @@ import (
 )
 
 // Evaluates a Teflon expression and returns the result
-func Get(dirs string, exs string) (res interface{}, err error) {
-	log.Printf("DEBUG: Inside Get(): dir: %v  ex: %v", dirs, exs)
+func (o *TeflonObject) Get(exs string) (res interface{}, err error) {
+	log.Printf("DEBUG: Inside Get(): o.Path: %v  ex: %v", o.Path, exs)
 
 	ex, err := NewExpr(exs)
 	if err != nil {
 		return nil, err
 	}
 
-	dir, err := NewTeflonObject(dirs)
-	if err != nil {
-		return nil, err
-	}
-
-	c := &Context{Dir: dir}
+	c := &Context{Dir: o}
 	res, err = ex.Eval(c)
 
-	return
+	return res, nil
 }
 
 // CreateShow() creates new Teflon show.
@@ -58,13 +52,6 @@ func (o *TeflonObject) CreateShow(exs string, protoName string) (oSl []*TeflonOb
 	if err != nil {
 		return nil, err
 	}
-
-	// Create display string of result (dres).
-	dres, err := json.MarshalIndent(res, "", "  ")
-	if err != nil {
-		log.Fatalln("ABORT: Couldnt marshal result JSON:", err)
-	}
-	log.Printf("DEBUG: dres: %s\n", dres)
 
 	if len(res) == 0 {
 		return nil, errors.New("Pattern returned nothing:" + exs)
@@ -102,6 +89,49 @@ func (o *TeflonObject) CreateShow(exs string, protoName string) (oSl []*TeflonOb
 }
 
 // CreateObject() creates a new FS object and triggers a new event.
-func CreateObject() {
+func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject, err error) {
+	log.Printf("DEBUG: Inside CreateShow(): o.Path: %v  exs: %v", o.Path, exs)
 
+	ex, err := NewExpr(exs)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Context{Dir: o}
+
+	res, err := ex.Generate(c)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fsp := range res {
+		if _, err := os.Stat(fsp); !os.IsNotExist(err) {
+			log.Println("WARNING: Target already exists:", fsp)
+			continue
+		}
+
+		if file {
+			f, err := os.Create(fsp)
+			if err != nil {
+				log.Println("WARNING: Couldn't create file:", fsp, err)
+				continue
+			}
+			f.Close()
+		} else {
+			err := os.Mkdir(fsp, 0755)
+			if err != nil {
+				log.Println("WARNING: Couldn't create directory:", fsp, err)
+				continue
+			}
+		}
+
+		o, err := NewTeflonObject(fsp)
+		if err != nil {
+			return nil, err
+		}
+
+		oSl = append(oSl, o)
+		log.Println("SUCCESS: Created:", fsp)
+	}
+	return oSl, nil
 }
