@@ -13,16 +13,26 @@
 
 package teflon
 
-import (
-	"log"
-	"os"
+import "log"
+
+type EventType int
+
+const (
+	PreNew EventType = iota
+	PostNew
 )
 
-func init() {
-	TeflonConf = os.Getenv("TEFLONCONF")
-	if TeflonConf == "" {
-		log.Println("FATAL: TEFLONCONF environment variable is not set.")
-		os.Exit(1)
-	}
-	go listen()
+type Event struct {
+	Object *TeflonObject
+	Type   EventType
+}
+
+var events chan Event = make(chan Event)
+
+func listen() {
+	log.Println("DEBUG: Inside listen().")
+  for {
+    e := <- events
+    log.Printf("DEBUG: Event received: %s (%d)", e.Object.GetPath(), e.Type)
+  }
 }

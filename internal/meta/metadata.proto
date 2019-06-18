@@ -26,11 +26,15 @@ message FileInfo {
 
 message PersistentMeta {
   bool ShowRoot = 1;
-  string Proto = 2;
+  Contract Contract = 2;
   repeated string Instances = 3;
   map<string, string> UserData = 4;
   ImgInfo ImgInfo = 5;
   Seq Seq = 6;
+}
+
+message Contract {
+  string Pattern = 1;
 }
 
 message ImgInfo {

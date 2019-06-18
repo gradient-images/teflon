@@ -21,6 +21,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var newFileFlag bool
+var newShowProtoFlag string
+
 // `new` creates a new Teflon object from a prototype
 var newCmd = &cobra.Command{
 	Use:   "new <target..>",
@@ -31,9 +34,6 @@ creates a new object based on the one it finds matching the requested type. If t
 	Args: cobra.ExactArgs(1),
 	Run:  New,
 }
-
-var newFileFlag bool
-var newShowProtoFlag string
 
 func init() {
 	newCmd.Flags().BoolVarP(

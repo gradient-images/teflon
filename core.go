@@ -76,7 +76,7 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 		"Parent":    o.Parent.GetPath(),
 		"FileInfo":  o.FileInfo,
 		"ShowRoot":  o.ShowRoot,
-		"Proto":     o.Proto,
+		"Contract":  o.Contract,
 		"Instances": o.Instances,
 	}
 

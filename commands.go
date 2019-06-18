@@ -19,10 +19,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gradient-images/teflon/internal/meta"
+
 	"github.com/otiai10/copy"
 )
 
-// Evaluates a Teflon expression and returns the result
+// Get() evaluates a Teflon expression and returns the result.
 func (o *TeflonObject) Get(exs string) (res interface{}, err error) {
 	log.Printf("DEBUG: Inside Get(): o.Path: %v  ex: %v", o.Path, exs)
 
@@ -77,7 +79,6 @@ func (o *TeflonObject) CreateShow(exs string, protoName string) (oSl []*TeflonOb
 		}
 
 		o.ShowRoot = true
-		o.Proto = proto
 
 		if o.SyncMeta() != nil {
 			log.Fatalln("ABORT: Couldn't write meta of newly created show:", err)
@@ -90,7 +91,7 @@ func (o *TeflonObject) CreateShow(exs string, protoName string) (oSl []*TeflonOb
 
 // CreateObject() creates a new FS object and triggers a new event.
 func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject, err error) {
-	log.Printf("DEBUG: Inside CreateShow(): o.Path: %v  exs: %v", o.Path, exs)
+	log.Printf("DEBUG: Inside CreateObject(): o.Path: %v  exs: %v", o.Path, exs)
 
 	ex, err := NewExpr(exs)
 	if err != nil {
@@ -131,7 +132,40 @@ func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject,
 		}
 
 		oSl = append(oSl, o)
+		events <- Event{o, PostNew}
 		log.Println("SUCCESS: Created:", fsp)
+	}
+	return oSl, nil
+}
+
+func (o *TeflonObject) SetContractPattern(exs string, pat string) (oSl []*TeflonObject, err error) {
+	ex, err := NewExpr(exs)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Context{Dir: o}
+
+	res, err := ex.Generate(c)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, errors.New("Pattern returned nothing:" + exs)
+	}
+
+	for _, fsp := range res {
+		o, err := NewTeflonObject(fsp)
+		if err != nil {
+			return nil, err
+		}
+		o.Contract = &meta.Contract{Pattern: pat}
+		err = o.SyncMeta()
+		if err != nil {
+			return oSl, err
+		}
+		oSl = append(oSl, o)
 	}
 	return oSl, nil
 }

@@ -20,4 +20,6 @@ import (
 
 func main() {
 	commands.Execute()
+	// log.Println("DEBUG: Returned from execute.")
+	// time.Sleep(time.Second * 2)
 }
