@@ -93,17 +93,24 @@ func (o TeflonObject) MarshalJSON() ([]byte, error) {
 // implement and it forces us to be compliant with the JSON standard.
 func (o *TeflonObject) IMap() map[string]interface{} {
 	// Marshal object to JSON
-	cj, err := json.Marshal(o)
+	j, err := json.Marshal(o)
 	if err != nil {
 		log.Fatalln("Couldn't marshal object:", o, err)
 	}
 	// UnMarshal JSON object to Context
-	c := &map[string]interface{}{}
-	err = json.Unmarshal(cj, c)
+	m := map[string]interface{}{}
+	err = json.Unmarshal(j, &m)
 	if err != nil {
 		log.Fatalln("Couldn't marshal object:", o, err)
 	}
-	return *c
+
+	for k, v := range m {
+		if v == nil {
+			delete(m, k)
+		}
+	}
+
+	return m
 }
 
 // GetChildren returns a slice of strings with the filenames.

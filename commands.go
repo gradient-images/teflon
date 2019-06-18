@@ -132,7 +132,7 @@ func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject,
 		}
 
 		oSl = append(oSl, o)
-		events <- Event{o, PostNew}
+		Events <- Event{o, PostNew}
 		log.Println("SUCCESS: Created:", fsp)
 	}
 	return oSl, nil

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gradient-images/teflon"
 	"github.com/spf13/cobra"
 )
 
@@ -39,4 +40,5 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	<-teflon.Done
 }

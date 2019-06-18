@@ -63,7 +63,7 @@ func NewExpr(text string) (*Expr, error) {
 func (ex *Expr) Eval(c *Context) (res interface{}, err error) {
 	if ex.ObjectSelector == nil {
 		if ex.MetaSelector == nil {
-			return c.Dir, nil
+			return c.Dir.IMap(), nil
 		} else {
 			cc := &Context{Dir: c.Dir, IMap: c.Dir.IMap()}
 			return ex.MetaSelector.Eval(cc)

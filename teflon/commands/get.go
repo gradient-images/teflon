@@ -29,7 +29,7 @@ var getCmd = &cobra.Command{
 	Long: `'teflon get' prints the metadata belonging to the targets.  If no <expr>
 is specified it will return all the metadata for '.'.`,
 	Args: cobra.ExactArgs(1),
-	Run:  CliGet,
+	Run:  Get,
 }
 
 func init() {
@@ -37,7 +37,7 @@ func init() {
 }
 
 // CLIGet is the command line wrapper around the Teflon API's Get function.
-func CliGet(cmd *cobra.Command, args []string) {
+func Get(cmd *cobra.Command, args []string) {
 	// Create object for current working directory
 	pwd, err := teflon.NewTeflonObject(".")
 	if err != nil {
@@ -49,6 +49,8 @@ func CliGet(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalln("ABORT: Couldn't get results:", err)
 	}
+
+	close(teflon.Events)
 
 	// Create display string of result (dres).
 	dres, err := json.MarshalIndent(res, "", "  ")

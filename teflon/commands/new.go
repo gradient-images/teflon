@@ -80,11 +80,13 @@ func New(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// If nothing else commands otherwise new will create an ordinary file-system
+	// object.
 	nobjs, err := pwd.CreateObject(args[0], newFileFlag)
 	if err != nil {
 		log.Fatalln("ABORT: Couldn't create objects:", err)
 	}
-
+	close(teflon.Events)
 	for _, obj := range nobjs {
 		fmt.Println(obj.Path)
 	}

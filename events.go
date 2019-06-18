@@ -11,10 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Commented out for faster compilation. Uncomment it to update.
+// //go:generate stringer -type EventType
+
 package teflon
 
 import "log"
 
+// EventType is an enum describing the type of a Teflon event.
 type EventType int
 
 const (
@@ -27,12 +31,13 @@ type Event struct {
 	Type   EventType
 }
 
-var events chan Event = make(chan Event)
+var Events chan Event = make(chan Event)
+var Done chan bool = make(chan bool)
 
 func listen() {
 	log.Println("DEBUG: Inside listen().")
-  for {
-    e := <- events
-    log.Printf("DEBUG: Event received: %s (%d)", e.Object.GetPath(), e.Type)
+  for evt := range Events {
+    log.Printf("DEBUG: Event received: %s (%s)", evt.Object.GetPath(), evt.Type)
   }
+  Done <- true
 }
