@@ -21,8 +21,7 @@ import (
 func init() {
 	TeflonConf = os.Getenv("TEFLONCONF")
 	if TeflonConf == "" {
-		log.Println("FATAL: TEFLONCONF environment variable is not set.")
-		os.Exit(1)
+		log.Fatalln("FATAL: TEFLONCONF environment variable is not set.")
 	}
 	go listen()
 }

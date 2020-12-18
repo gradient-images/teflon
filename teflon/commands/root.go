@@ -15,30 +15,31 @@
 package commands
 
 import (
-	"fmt"
-	"os"
+	"log"
 
-	"github.com/gradient-images/teflon"
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
+// var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "teflon",
 	Short: "Film and TV post-production automation framework",
-	Long: `Teflon is an post-production framework for film, that makes it possible
-to automate several routine tasks, like file transformations, file sharing
-and job distribution.`,
+	Long: `Teflon is a cross platform metadata engine aimed at post production
+pipeline creation.`,
+	Run: RootRun,
+}
+
+// Without arguments the `teflon` command prints the help message.
+func RootRun(cmd *cobra.Command, args []string) {
+	cmd.Help()
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
-	<-teflon.Done
 }

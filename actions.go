@@ -111,6 +111,10 @@ func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject,
 			continue
 		}
 
+		rch := make(chan *TeflonObject)
+		Events <- Event{o, PreNew, rch}
+		<-rch
+
 		if file {
 			f, err := os.Create(fsp)
 			if err != nil {
@@ -132,7 +136,9 @@ func (o *TeflonObject) CreateObject(exs string, file bool) (oSl []*TeflonObject,
 		}
 
 		oSl = append(oSl, o)
-		Events <- Event{o, PostNew}
+
+		Events <- Event{o, PostNew, nil}
+
 		log.Println("SUCCESS: Created:", fsp)
 	}
 	return oSl, nil

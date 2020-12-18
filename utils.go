@@ -14,10 +14,7 @@
 package teflon
 
 import (
-	"errors"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 // Tells if a path is a dir or not.
@@ -36,42 +33,4 @@ func IsDir(fspath string) bool {
 func Exist(fspath string) bool {
 	_, err := os.Stat(fspath)
 	return !os.IsNotExist(err)
-}
-
-// Converts a target to a file-sytem absolute path.
-func Path(target string) (string, error) {
-
-	// Checks if target is show absolute.
-	if strings.HasPrefix(target, "//") {
-		o, err := NewTeflonObject(".")
-		if err != nil {
-			return "", err
-		}
-		if o.Show == nil {
-			return "", errors.New("Couldn't resolve '//'.")
-		}
-		return filepath.Join(o.Show.Path, strings.TrimPrefix(target, "/")), nil
-	}
-
-	// Checks if target is file-system absolute.
-	if strings.HasPrefix(target, "/") {
-		return filepath.Clean(target), nil
-	}
-
-	// If neither of the above then it's relative.
-	fspath, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
-	}
-	return fspath, nil
-}
-
-// Converts file-system absolute path to show-absolute notation. If the conversion
-// can not be made, the function reurns the original string.
-func ShowAbs(fspath string) string {
-	o, err := NewTeflonObject(fspath)
-	if err != nil {
-		return fspath
-	}
-	return strings.Replace(fspath, o.Show.Path, "/", 1)
 }

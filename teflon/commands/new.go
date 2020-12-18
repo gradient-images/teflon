@@ -27,7 +27,7 @@ var newShowProtoFlag string
 // `new` creates a new Teflon object from a prototype
 var newCmd = &cobra.Command{
 	Use:   "new <target..>",
-	Short: "Creates a new Teflon object based on a prototype",
+	Short: "Creates a new Teflon object based",
 	Long: `Command 'teflon new' looks for a matching prototype upstream the show hierarchy and
 creates a new object based on the one it finds matching the requested type. If the
 '-S' flag is present, the command will create a new show from a show prototype.`,
@@ -55,7 +55,7 @@ func init() {
 		"show-proto",
 		"p",
 		"Default",
-		"Prototype to use during show creation.",
+		"Prototype to use for new show creation.",
 	)
 	rootCmd.AddCommand(newCmd)
 }
@@ -68,11 +68,11 @@ func New(cmd *cobra.Command, args []string) {
 		log.Fatalln("Couldn't create object for '.' :", err)
 	}
 
-	// If showFlag is set `new` will create a shows instead of a regular object.
+	// Create a show.
 	if showFlag {
 		nshws, err := pwd.CreateShow(args[0], newShowProtoFlag)
 		if err != nil {
-			log.Fatalln("ABORT: Couldnt create shows:", err)
+			log.Fatalln("ABORT: Couldnt create show:", err)
 		}
 		for _, shw := range nshws {
 			fmt.Println(shw.Path)

@@ -397,7 +397,7 @@ func (mnn *MultiName) NextMatch(o *TeflonObject) (res *TeflonObject) {
 
 	// Init children.
 	if mnn.children == nil {
-		mnn.children = o.Children()
+		mnn.children = o.ChildrenNames()
 	}
 
 	for res == nil {
@@ -445,7 +445,7 @@ func (node *MultiName) GenerateAll(fspSl []string) (res []string) {
 		if err != nil {
 			continue
 		}
-		for _, ch := range o.Children() {
+		for _, ch := range o.ChildrenNames() {
 			if node.pattern.MatchString(ch) {
 				res = append(res, filepath.Join(fsp, ch))
 			}

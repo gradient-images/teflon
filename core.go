@@ -27,10 +27,12 @@ package teflon
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gradient-images/teflon/internal/meta"
 
@@ -51,8 +53,8 @@ var Shows = []*TeflonObject{}
 
 const (
 	ShowProtoDirName = "show_proto"
-	protoDirName     = "proto"
 	teflonDirName    = ".teflon"
+	contractDirName  = ".teflon/contract"
 	metaDirMetaName  = "_"
 	metaExtension    = "._"
 )
@@ -113,8 +115,9 @@ func (o *TeflonObject) IMap() map[string]interface{} {
 	return m
 }
 
-// GetChildren returns a slice of strings with the filenames.
-func (o *TeflonObject) Children() (ch []string) {
+// ChildrenNames() returns a slice of strings with the names of the children of the
+// object.
+func (o *TeflonObject) ChildrenNames() (ch []string) {
 	ch = []string{}
 	f, err := os.Open(o.Path)
 	defer f.Close()
@@ -125,6 +128,20 @@ func (o *TeflonObject) Children() (ch []string) {
 	ch, err = f.Readdirnames(-1)
 	if err != nil {
 		return ch
+	}
+	return ch
+}
+
+// Children() returns the child objects of the object.
+func (o *TeflonObject) Children() (ch []*TeflonObject) {
+	ch = []*TeflonObject{}
+	chn := o.ChildrenNames()
+	for _, n := range chn {
+		no, err := NewTeflonObject(filepath.Join(o.Path, n))
+		if err != nil {
+			log.Fatalln("ABORT: Couldn't create child object:", err)
+		}
+		ch = append(ch, no)
 	}
 	return ch
 }
@@ -186,6 +203,44 @@ func (o *TeflonObject) GetPath() string {
 		return o.Path
 	}
 	return ""
+}
+
+// Converts a target to a file-sytem absolute path.
+func Path(target string) (string, error) {
+
+	// Checks if target is show absolute.
+	if strings.HasPrefix(target, "//") {
+		o, err := NewTeflonObject(".")
+		if err != nil {
+			return "", err
+		}
+		if o.Show == nil {
+			return "", errors.New("Couldn't resolve '//'.")
+		}
+		return filepath.Join(o.Show.Path, strings.TrimPrefix(target, "/")), nil
+	}
+
+	// Checks if target is file-system absolute.
+	if strings.HasPrefix(target, "/") {
+		return filepath.Clean(target), nil
+	}
+
+	// If neither of the above then it's relative.
+	fspath, err := filepath.Abs(target)
+	if err != nil {
+		return "", err
+	}
+	return fspath, nil
+}
+
+// Converts file-system absolute path to show-absolute notation. If the conversion
+// can not be made, the function reurns the original string.
+func ShowAbs(fspath string) string {
+	o, err := NewTeflonObject(fspath)
+	if err != nil {
+		return fspath
+	}
+	return strings.Replace(fspath, o.Show.Path, "/", 1)
 }
 
 // NewTeflonObject creates a new initialized Teflon object in memory, that
